@@ -1,2 +1,1 @@
-# hack-latam-mvp
-# hack-latam-mvp
+# MVP Hack Latam
