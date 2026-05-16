@@ -55,6 +55,9 @@ desktop.ini
 # --- Stray local dirs ---
 hack-latam-mvp/
 
+# --- Playwright MCP artifacts ---
+.playwright-mcp/
+
 # --- Audio test fixtures (no commitear samples pesados) ---
 *.wav
 *.mp3
