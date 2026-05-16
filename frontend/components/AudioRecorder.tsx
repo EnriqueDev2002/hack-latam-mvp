@@ -42,8 +42,8 @@ export function AudioRecorder({ onRecorded, disabled }: Props) {
       onClick={recording ? stop : start}
       disabled={disabled}
       className={cn(
-        "flex w-full items-center justify-center gap-3 rounded-2xl px-8 py-6 text-senior font-semibold text-white shadow-md transition disabled:opacity-50",
-        recording ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700",
+        "flex w-full items-center justify-center gap-3 rounded-2xl px-8 py-7 text-senior font-extrabold text-white shadow-md transition disabled:opacity-50",
+        recording ? "bg-red-600 hover:bg-red-700" : "bg-brand hover:bg-brand-dark",
       )}
     >
       {recording ? <Square className="h-6 w-6" /> : <Mic className="h-6 w-6" />}

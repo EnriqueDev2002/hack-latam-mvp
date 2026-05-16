@@ -209,7 +209,11 @@ git push origin <rama>  # commits frecuentes
 > Sección viva. Si necesitas algo del otro lado del stack, escríbelo aquí en lugar de tocar archivos del compañero.
 
 ```
-[ ] (vacío por ahora)
+[ ] (frontend → backend) WS /ws/analyze: el contrato dice "bytes (audio chunks, 16kHz PCM)"
+    pero el frontend hoy envía chunks WebM/Opus tal cual los emite MediaRecorder.
+    Decidir: ¿el backend acepta WebM y decodifica server-side, o el frontend
+    resamplea con AudioContext a PCM 16kHz antes de enviar? Sin decisión, la
+    integración WS fallará silenciosamente (REST sigue funcionando).
 ```
 
 ---

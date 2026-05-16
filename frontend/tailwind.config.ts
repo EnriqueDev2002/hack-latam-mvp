@@ -8,14 +8,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        cream: "#fdf8f0",
+        brand: {
+          DEFAULT: "#1d4e89",
+          dark: "#163d6e",
+          light: "#dbeafe",
+        },
         risk: {
-          low: "#10b981",
-          medium: "#f59e0b",
-          high: "#ef4444",
+          low: "#15803d",
+          medium: "#b45309",
+          high: "#b91c1c",
         },
       },
       fontSize: {
-        senior: "1.25rem",
+        senior: ["1.375rem", { lineHeight: "2rem" }],
       },
     },
   },
