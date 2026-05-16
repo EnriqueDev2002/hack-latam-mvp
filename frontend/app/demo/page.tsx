@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
-import { Play, RotateCcw, Volume2 } from "lucide-react";
+import { Play, RotateCcw, Volume2, Mic } from "lucide-react";
 import { ChallengeCard } from "@/components/ChallengeCard";
 import { RiskIndicator } from "@/components/RiskIndicator";
 import { analyzeAudio } from "@/lib/api";
@@ -14,7 +14,8 @@ type Scenario = {
   title: string;
   description: string;
   expected: string;
-  expectedColor: string;
+  badge: string;
+  badgeColor: string;
   file: string;
 };
 
@@ -23,9 +24,10 @@ const SCENARIOS: Scenario[] = [
     id: "real",
     title: "Voz real de un familiar registrado",
     description:
-      'Simula la voz de "Jorge G" llamando — un contacto previamente enrollado en VoiceGuard.',
+      'Simula la voz de "Jorge G" llamando — un contacto previamente registrado en VoiceGuard.',
     expected: "Debería detectarse como VOZ AUTÉNTICA + match con Jorge G",
-    expectedColor: "text-green-700",
+    badge: "Voz real",
+    badgeColor: "badge-success",
     file: "/demo/real-voice.webm",
   },
   {
@@ -34,16 +36,18 @@ const SCENARIOS: Scenario[] = [
     description:
       "Una voz sintética generada por IA, sin coincidir con ningún contacto registrado.",
     expected: "Debería detectarse como POSIBLE FRAUDE (sin match)",
-    expectedColor: "text-red-700",
+    badge: "Voz IA",
+    badgeColor: "badge-danger",
     file: "/demo/ai-voice.webm",
   },
   {
     id: "clone",
     title: "Intento de clonación de voz",
     description:
-      "Una voz con IA que intenta hacerse pasar por un contacto enrollado (similitud parcial).",
+      "Una voz con IA que intenta hacerse pasar por un contacto registrado (similitud parcial).",
     expected: "Debería detectarse como POSIBLE SUPLANTACIÓN de Jorge G",
-    expectedColor: "text-red-700",
+    badge: "Clonación",
+    badgeColor: "badge-danger",
     file: "/demo/cloning-attempt.webm",
   },
 ];
@@ -56,7 +60,9 @@ type RunState = {
 
 export default function DemoPage() {
   const [runs, setRuns] = useState<Record<string, RunState>>(() =>
-    Object.fromEntries(SCENARIOS.map((s) => [s.id, { status: "idle", result: null, error: "" }])),
+    Object.fromEntries(
+      SCENARIOS.map((s) => [s.id, { status: "idle", result: null, error: "" }]),
+    ),
   );
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
 
@@ -67,7 +73,6 @@ export default function DemoPage() {
     updateRun(scenario.id, { status: "playing", result: null, error: "" });
 
     try {
-      // Fetch the audio file and start playback simultaneously with analysis
       const audio = audioRefs.current[scenario.id];
       if (audio) {
         audio.currentTime = 0;
@@ -95,35 +100,45 @@ export default function DemoPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    <main className="mx-auto max-w-2xl px-6 py-10">
+      {/* Header */}
       <div className="mb-10 text-center">
-        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-brand">
-          <Play className="h-10 w-10 text-white" />
+        <div
+          className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[22px] shadow-brand"
+          style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
+        >
+          <Play className="h-10 w-10 text-white" strokeWidth={2} />
         </div>
-        <h1 className="text-4xl font-extrabold tracking-tight text-brand">Modo demo</h1>
-        <p className="mx-auto mt-3 max-w-xl text-senior text-gray-700">
-          Tres escenarios simulan distintos tipos de llamada para ver al detector en acción.
-        </p>
-        <p className="mt-2 text-sm text-gray-500">
-          Cada botón reproduce el audio y lo envía al detector simultáneamente.
+        <h1 className="text-4xl font-bold tracking-tight text-neutral-900">Modo demo</h1>
+        <p className="mx-auto mt-3 max-w-lg text-senior text-neutral-600">
+          Tres escenarios simulan distintos tipos de llamada para ver el detector en acción.
         </p>
       </div>
 
+      {/* Scenario cards */}
       <section className="flex flex-col gap-6">
-        {SCENARIOS.map((scenario) => {
+        {SCENARIOS.map((scenario, idx) => {
           const run = runs[scenario.id];
           const isRunning = run.status === "playing" || run.status === "analyzing";
+
           return (
             <div
               key={scenario.id}
-              className="rounded-3xl border-2 border-amber-100 bg-white p-6 shadow-md"
+              className="card p-6 animate-fade-up animate-fill-forwards"
+              style={{ animationDelay: `${idx * 80}ms` }}
             >
-              <h2 className="text-xl font-extrabold text-brand-dark">{scenario.title}</h2>
-              <p className="mt-2 text-base text-gray-700">{scenario.description}</p>
-              <p className={cn("mt-3 text-sm font-semibold", scenario.expectedColor)}>
-                {scenario.expected}
-              </p>
+              {/* Badge + title */}
+              <div className="mb-3 flex items-start justify-between gap-4">
+                <h2 className="text-xl font-bold text-neutral-900">{scenario.title}</h2>
+                <span className={cn("badge flex-shrink-0", scenario.badgeColor)}>
+                  {scenario.badge}
+                </span>
+              </div>
 
+              <p className="text-base text-neutral-600">{scenario.description}</p>
+              <p className="mt-2 text-sm font-semibold text-neutral-400">{scenario.expected}</p>
+
+              {/* Audio player */}
               <audio
                 ref={(el) => {
                   audioRefs.current[scenario.id] = el;
@@ -134,14 +149,15 @@ export default function DemoPage() {
                 controls
               />
 
+              {/* Actions */}
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() => runScenario(scenario)}
                   disabled={isRunning}
                   className={cn(
-                    "flex items-center gap-2 rounded-2xl px-6 py-3 text-base font-bold text-white shadow-sm transition active:scale-95 disabled:opacity-50",
-                    isRunning ? "bg-brand-dark" : "bg-brand hover:bg-brand-dark",
+                    "btn-primary text-base px-6 py-3",
+                    isRunning && "opacity-75",
                   )}
                 >
                   {run.status === "playing" ? (
@@ -161,11 +177,12 @@ export default function DemoPage() {
                     </>
                   )}
                 </button>
+
                 {run.status === "done" && (
                   <button
                     type="button"
                     onClick={() => reset(scenario.id)}
-                    className="flex items-center gap-2 rounded-2xl border-2 border-brand bg-white px-6 py-3 text-base font-bold text-brand transition hover:bg-brand-light"
+                    className="btn-secondary text-base px-6 py-3"
                   >
                     <RotateCcw className="h-5 w-5" />
                     Repetir
@@ -173,12 +190,14 @@ export default function DemoPage() {
                 )}
               </div>
 
+              {/* Error */}
               {run.error && (
-                <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-800">
-                  {run.error}
-                </p>
+                <div className="mt-4 rounded-[14px] bg-danger-bg px-4 py-3">
+                  <p className="text-sm font-semibold text-red-800">{run.error}</p>
+                </div>
               )}
 
+              {/* Result */}
               {run.result && (
                 <div className="mt-5 flex flex-col gap-4">
                   <RiskIndicator result={run.result} />
@@ -190,14 +209,19 @@ export default function DemoPage() {
         })}
       </section>
 
-      <div className="mt-10 rounded-3xl bg-brand-light p-6 text-center">
-        <p className="text-senior text-brand-dark">
+      {/* CTA */}
+      <div
+        className="mt-10 rounded-[20px] p-6 text-center"
+        style={{ background: "linear-gradient(160deg, #EFF6FF 0%, #F8FAFC 100%)", border: "1px solid #DBEAFE" }}
+      >
+        <p className="text-senior font-semibold text-brand-dark">
           ¿Quieres probar el detector con tu propia voz?
         </p>
         <Link
           href="/analyze"
-          className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand px-6 py-3 text-base font-extrabold text-white shadow-md transition hover:bg-brand-dark"
+          className="btn-primary mt-4 inline-flex text-base px-6 py-3"
         >
+          <Mic className="h-5 w-5" />
           Ir al analizador en vivo
         </Link>
       </div>

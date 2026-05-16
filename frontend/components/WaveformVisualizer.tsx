@@ -9,19 +9,29 @@ interface Props {
   risk: RiskLevel | null;
 }
 
-const COLORS: Record<RiskLevel, string> = {
-  low: "#15803d",     // green
-  medium: "#b45309",  // amber
-  high: "#b91c1c",    // red
+const COLORS: Record<RiskLevel, { bar: string; glow: string; bg: string; border: string }> = {
+  low: {
+    bar: "#16A34A",
+    glow: "rgba(22,163,74,0.4)",
+    bg: "from-success-light to-white",
+    border: "border-success-bg",
+  },
+  medium: {
+    bar: "#D97706",
+    glow: "rgba(217,119,6,0.4)",
+    bg: "from-warning-light to-white",
+    border: "border-warning-bg",
+  },
+  high: {
+    bar: "#DC2626",
+    glow: "rgba(220,38,38,0.4)",
+    bg: "from-danger-light to-white",
+    border: "border-danger-bg",
+  },
 };
 
 const BAR_COUNT = 48;
 
-/**
- * Live waveform visualizer.
- * Reads frequency data from the mic stream via WebAudio AnalyserNode and
- * draws colored bars whose hue tracks the current risk level.
- */
 export function WaveformVisualizer({ stream, risk }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
@@ -60,20 +70,29 @@ export function WaveformVisualizer({ stream, risk }: Props) {
       const h = canvas.height;
       c.clearRect(0, 0, w, h);
 
-      const color = COLORS[riskRef.current ?? "low"];
-      c.fillStyle = color;
-      c.shadowBlur = 8;
-      c.shadowColor = color;
+      const level = riskRef.current ?? "low";
+      const { bar, glow } = COLORS[level];
 
       const barWidth = w / BAR_COUNT;
       const step = Math.floor(data.length / BAR_COUNT);
+      const radius = 3;
+
       for (let i = 0; i < BAR_COUNT; i++) {
         const v = data[i * step] / 255;
-        const barH = Math.max(4, v * h * 0.9);
-        const x = i * barWidth + barWidth * 0.15;
+        const barH = Math.max(6, v * h * 0.88);
+        const x = i * barWidth + barWidth * 0.2;
         const y = h / 2 - barH / 2;
-        c.fillRect(x, y, barWidth * 0.7, barH);
+        const bw = barWidth * 0.6;
+
+        c.fillStyle = bar;
+        c.shadowBlur = v > 0.3 ? 8 : 0;
+        c.shadowColor = glow;
+
+        c.beginPath();
+        c.roundRect(x, y, bw, barH, radius);
+        c.fill();
       }
+
       rafRef.current = requestAnimationFrame(draw);
     };
     draw();
@@ -91,18 +110,22 @@ export function WaveformVisualizer({ stream, risk }: Props) {
     };
   }, [stream]);
 
+  const colors = COLORS[risk ?? "low"];
+
   return (
     <div
       className={cn(
-        "rounded-2xl border-2 p-4 transition-colors",
-        risk === "high"
-          ? "border-red-300 bg-red-50"
-          : risk === "medium"
-            ? "border-amber-300 bg-amber-50"
-            : "border-green-300 bg-green-50",
+        "overflow-hidden rounded-[20px] border bg-gradient-to-b p-4 transition-all duration-500",
+        colors.bg,
+        colors.border,
       )}
     >
-      <canvas ref={canvasRef} width={600} height={120} className="h-24 w-full" />
+      <canvas
+        ref={canvasRef}
+        width={600}
+        height={100}
+        className="h-[80px] w-full"
+      />
     </div>
   );
 }

@@ -8,10 +8,28 @@ import { cn } from "@/lib/utils";
 
 type Feedback = { kind: "success" | "error"; message: string };
 
-const RISK_CONFIG: Record<RiskLevel, { label: string; color: string; Icon: typeof ShieldAlert }> = {
-  high: { label: "Alto riesgo", color: "text-red-600 bg-red-50 border-red-200", Icon: ShieldAlert },
-  medium: { label: "Sospechoso", color: "text-amber-600 bg-amber-50 border-amber-200", Icon: AlertTriangle },
-  low: { label: "Seguro", color: "text-green-600 bg-green-50 border-green-200", Icon: CheckCircle2 },
+const RISK_CONFIG: Record<
+  RiskLevel,
+  { label: string; badge: string; borderColor: string; Icon: typeof ShieldAlert }
+> = {
+  high: {
+    label: "Alto riesgo",
+    badge: "badge badge-danger",
+    borderColor: "#FEE2E2",
+    Icon: ShieldAlert,
+  },
+  medium: {
+    label: "Sospechoso",
+    badge: "badge badge-warning",
+    borderColor: "#FEF3C7",
+    Icon: AlertTriangle,
+  },
+  low: {
+    label: "Seguro",
+    badge: "badge badge-success",
+    borderColor: "#DCFCE7",
+    Icon: CheckCircle2,
+  },
 };
 
 const FILTER_OPTIONS: { value: RiskLevel | "all"; label: string }[] = [
@@ -70,22 +88,26 @@ export default function IncidentsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <h1 className="text-3xl font-bold text-gray-900">Historial de alertas</h1>
-      <p className="mt-2 text-senior text-gray-700">
-        Llamadas y audios analizados recientemente.
-      </p>
+    <main className="mx-auto max-w-xl px-6 py-10">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-neutral-900">Historial de alertas</h1>
+        <p className="mt-2 text-senior text-neutral-600">
+          Llamadas y audios analizados recientemente.
+        </p>
+      </div>
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      {/* Filter tabs */}
+      <div className="flex flex-wrap gap-2">
         {FILTER_OPTIONS.map(({ value, label }) => (
           <button
             key={value}
             onClick={() => setFilter(value)}
             className={cn(
-              "rounded-xl border-2 px-5 py-3 text-base font-semibold transition",
+              "rounded-[12px] border-2 px-5 py-2.5 text-base font-semibold transition-all duration-150",
               filter === value
-                ? "border-blue-600 bg-blue-600 text-white"
-                : "border-gray-200 bg-white text-gray-700 hover:border-blue-300",
+                ? "border-brand bg-brand text-white shadow-brand"
+                : "border-neutral-200 bg-white text-neutral-600 hover:border-brand-light hover:text-brand",
             )}
           >
             {label}
@@ -93,19 +115,24 @@ export default function IncidentsPage() {
         ))}
       </div>
 
+      {/* List */}
       <section className="mt-6 flex flex-col gap-4">
         {loading && (
-          <p className="text-senior text-gray-500">Cargando incidentes…</p>
+          <>
+            <div className="skeleton h-24 w-full" />
+            <div className="skeleton h-24 w-full" />
+            <div className="skeleton h-24 w-full" />
+          </>
         )}
 
         {!loading && incidents.length === 0 && (
-          <div className="rounded-2xl border bg-white p-8 text-center">
-            <p className="text-senior text-gray-500">No hay incidentes en esta categoría.</p>
+          <div className="card p-10 text-center">
+            <p className="text-senior text-neutral-500">No hay incidentes en esta categoría.</p>
           </div>
         )}
 
-        {incidents.map((incident) => {
-          const { label, color, Icon } = RISK_CONFIG[incident.risk_level];
+        {incidents.map((incident, idx) => {
+          const { label, badge, borderColor, Icon } = RISK_CONFIG[incident.risk_level];
           const date = new Date(incident.created_at).toLocaleString("es-MX", {
             day: "numeric",
             month: "short",
@@ -117,58 +144,90 @@ export default function IncidentsPage() {
           return (
             <div
               key={incident.id}
-              className={cn("rounded-2xl border-2 bg-white p-6 shadow-sm", color.split(" ")[2])}
+              className="card p-6 animate-fade-up animate-fill-forwards"
+              style={{
+                animationDelay: `${idx * 60}ms`,
+                borderLeft: `4px solid ${borderColor}`,
+              }}
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <Icon className={cn("h-7 w-7", color.split(" ")[0])} />
+                <div className="flex items-start gap-3">
+                  <div
+                    className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: borderColor }}
+                  >
+                    <Icon className="h-5 w-5" style={{ color: RISK_CONFIG[incident.risk_level].badge.includes("danger") ? "#DC2626" : RISK_CONFIG[incident.risk_level].badge.includes("warning") ? "#D97706" : "#16A34A" }} />
+                  </div>
                   <div>
-                    <p className={cn("text-senior font-bold", color.split(" ")[0])}>{label}</p>
-                    <p className="text-sm text-gray-500">{date}</p>
+                    <span className={badge}>{label}</span>
+                    <p className="mt-1 text-sm text-neutral-500">{date}</p>
                   </div>
                 </div>
-                {incident.risk_level === "high" && !incident.alerted && (
-                  <button
-                    onClick={() => openAlertModal(incident)}
-                    disabled={alerting === incident.id}
-                    className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
-                  >
-                    <Bell className="h-5 w-5" />
-                    {alerting === incident.id ? "Enviando…" : "Alertar"}
-                  </button>
-                )}
-                {incident.alerted && (
-                  <span className="rounded-xl bg-gray-100 px-4 py-3 text-sm font-medium text-gray-500">
-                    Alertado
-                  </span>
+
+                <div className="flex-shrink-0">
+                  {incident.risk_level === "high" && !incident.alerted && (
+                    <button
+                      onClick={() => openAlertModal(incident)}
+                      disabled={alerting === incident.id}
+                      className="flex items-center gap-2 rounded-[12px] bg-danger px-4 py-2.5 text-sm font-semibold text-white shadow-danger transition-all duration-150 hover:bg-red-700 active:scale-95 disabled:opacity-50"
+                    >
+                      <Bell className="h-4 w-4" />
+                      {alerting === incident.id ? "Enviando…" : "Alertar"}
+                    </button>
+                  )}
+                  {incident.alerted && (
+                    <span className="badge badge-neutral">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Alertado
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Meta row */}
+              <div className="mt-4 flex items-center gap-4 text-sm text-neutral-500">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-medium">Confianza:</span>
+                  <span className="font-bold text-neutral-700">{pct}%</span>
+                </div>
+                {incident.matched_contact && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium">Contacto:</span>
+                    <span className="font-bold text-neutral-700">{incident.matched_contact}</span>
+                  </div>
                 )}
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-600">
-                <span>Confianza: <strong>{pct}%</strong></span>
-                {incident.matched_contact && (
-                  <span>Contacto: <strong>{incident.matched_contact}</strong></span>
-                )}
+              {/* Confidence mini-bar */}
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${pct}%`,
+                    backgroundColor: incident.risk_level === "high" ? "#DC2626" : incident.risk_level === "medium" ? "#D97706" : "#16A34A",
+                  }}
+                />
               </div>
             </div>
           );
         })}
       </section>
 
+      {/* Toast */}
       {feedback && (
         <div
           role="status"
           className={cn(
-            "fixed inset-x-0 bottom-6 mx-auto flex max-w-md items-center justify-between gap-4 rounded-2xl border-2 px-5 py-4 shadow-lg",
+            "fixed inset-x-4 top-4 z-50 mx-auto flex max-w-md items-center justify-between gap-4 rounded-[16px] border px-5 py-4 shadow-card-hover animate-slide-up animate-fill-forwards",
             feedback.kind === "success"
-              ? "border-green-300 bg-green-50 text-green-800"
-              : "border-red-300 bg-red-50 text-red-800",
+              ? "border-success-bg bg-success-light text-green-800"
+              : "border-danger-bg bg-danger-light text-red-800",
           )}
         >
-          <span className="text-senior font-semibold">{feedback.message}</span>
+          <span className="text-base font-semibold">{feedback.message}</span>
           <button
             onClick={() => setFeedback(null)}
-            className="rounded-lg p-2 transition hover:bg-black/5"
+            className="rounded-lg p-1.5 transition hover:bg-black/5"
             aria-label="Cerrar mensaje"
           >
             <X className="h-5 w-5" />
@@ -176,23 +235,27 @@ export default function IncidentsPage() {
         </div>
       )}
 
+      {/* Alert modal */}
       {phoneModalFor && (
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="alert-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
           onClick={closeAlertModal}
         >
           <form
             onSubmit={confirmAlert}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl"
+            className="w-full max-w-md rounded-[24px] bg-white p-8 shadow-[0_24px_48px_rgba(0,0,0,0.15)] animate-scale-in animate-fill-forwards"
           >
-            <h2 id="alert-modal-title" className="text-2xl font-extrabold text-gray-900">
+            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-danger-bg">
+              <Bell className="h-7 w-7 text-danger" />
+            </div>
+            <h2 id="alert-modal-title" className="text-2xl font-bold text-neutral-900">
               Enviar alerta por WhatsApp
             </h2>
-            <p className="mt-2 text-senior text-gray-700">
+            <p className="mt-2 text-senior text-neutral-600">
               Escriba el número del familiar con código de país.
             </p>
             <input
@@ -203,19 +266,16 @@ export default function IncidentsPage() {
               value={phoneInput}
               onChange={(e) => setPhoneInput(e.target.value)}
               placeholder="+521234567890"
-              className="mt-5 w-full rounded-xl border-2 border-gray-200 px-5 py-4 text-senior text-gray-900 outline-none focus:border-brand"
+              className="input-field mt-5"
             />
             <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
-              <button
-                type="submit"
-                className="rounded-2xl bg-red-600 px-6 py-4 text-senior font-extrabold text-white shadow-md transition hover:bg-red-700"
-              >
+              <button type="submit" className="btn-primary flex-1 text-senior" style={{ background: "linear-gradient(135deg, #DC2626, #EF4444)" }}>
                 Enviar alerta
               </button>
               <button
                 type="button"
                 onClick={closeAlertModal}
-                className="rounded-2xl border-2 border-gray-300 bg-white px-6 py-4 text-senior font-bold text-gray-700 transition hover:bg-gray-50"
+                className="btn-secondary flex-1 text-senior"
               >
                 Cancelar
               </button>

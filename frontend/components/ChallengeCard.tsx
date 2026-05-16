@@ -6,12 +6,6 @@ import { getChallenge } from "@/lib/api";
 import type { Challenge } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-/**
- * Liveness challenge: when the detector flags suspicion, the elderly user
- * gets a random phrase they can ask the caller to repeat. A pre-recorded
- * AI clone can't improvise, so this is a defensive check that works even
- * if the voice model fails.
- */
 export function ChallengeCard() {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,35 +29,53 @@ export function ChallengeCard() {
   const kindLabel = challenge?.kind === "personal" ? "Pregunta personal" : "Frase improvisada";
 
   return (
-    <div className="rounded-2xl border-4 border-blue-400 bg-blue-50 p-6 shadow-md">
+    <div
+      className="rounded-[20px] border p-6"
+      style={{
+        background: "linear-gradient(160deg, #EFF6FF 0%, #FFFFFF 50%)",
+        borderColor: "#DBEAFE",
+      }}
+    >
+      {/* Header */}
       <div className="flex items-center gap-3">
-        <Shield className="h-8 w-8 text-blue-700" />
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-light">
+          <Shield className="h-5 w-5 text-brand" strokeWidth={2} />
+        </div>
         <div>
-          <h3 className="text-xl font-extrabold text-blue-900">Verificación adicional</h3>
-          <p className="text-sm font-semibold text-blue-700">{kindLabel}</p>
+          <h3 className="text-lg font-bold text-neutral-900">Verificación adicional</h3>
+          <p className="text-sm font-semibold text-brand">{kindLabel}</p>
         </div>
       </div>
 
-      <p className="mt-3 text-base text-blue-900">
+      <p className="mt-4 text-base text-neutral-600">
         Antes de continuar, pídale al llamador:
       </p>
 
-      <div className="mt-3 rounded-xl bg-white p-5 shadow-inner">
-        <Sparkles className="mb-2 inline h-5 w-5 text-blue-600" />
-        <p className={cn("text-senior font-extrabold text-blue-900", loading && "opacity-50")}>
-          {challenge?.prompt ?? "Cargando…"}
+      {/* Challenge prompt */}
+      <div className="mt-3 rounded-[14px] border border-neutral-200 bg-white p-5 shadow-card">
+        <Sparkles className="mb-2 h-4 w-4 text-brand" />
+        <p
+          className={cn(
+            "text-senior font-bold text-neutral-900",
+            loading && "opacity-40",
+          )}
+        >
+          {challenge?.prompt ?? "Cargando desafío…"}
         </p>
       </div>
 
       {challenge && (
-        <p className="mt-3 text-sm text-blue-800">{challenge.instructions}</p>
+        <p className="mt-3 text-sm text-neutral-500 leading-relaxed">
+          {challenge.instructions}
+        </p>
       )}
 
+      {/* Refresh button */}
       <button
         type="button"
         onClick={refresh}
         disabled={loading}
-        className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-blue-300 bg-white px-4 py-2 text-sm font-bold text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
+        className="mt-4 inline-flex items-center gap-2 rounded-[12px] border-2 border-brand-light bg-white px-4 py-2.5 text-sm font-semibold text-brand transition-all duration-150 hover:bg-brand-50 active:scale-95 disabled:opacity-50"
       >
         <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
         Generar otra prueba

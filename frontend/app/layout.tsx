@@ -1,17 +1,25 @@
 import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 
-const nunito = Nunito({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
-  variable: "--font-nunito",
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "VoiceGuard",
-  description: "Detecta voces clonadas por IA y protege a tu familia",
+  title: "VoiceGuard — Detecta voces clonadas por IA",
+  description: "Protege a tu familia del fraude de voz clonada con inteligencia artificial. Análisis en tiempo real.",
 };
 
 export default function RootLayout({
@@ -20,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={nunito.variable}>
+    <html lang="es" className={`${jakarta.variable} ${mono.variable}`}>
       <body className="min-h-screen antialiased">
         <Navbar />
         {children}
