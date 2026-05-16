@@ -2,6 +2,7 @@ import type { AnalyzeResponse } from "./types";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000/ws/analyze";
 const CHUNK_INTERVAL_MS = 1000;
+const WS_OPEN_TIMEOUT_MS = 3000;
 
 export type ScoreCallback = (score: AnalyzeResponse) => void;
 export type ErrorCallback = (err: Error) => void;
@@ -16,10 +17,32 @@ export class AudioStreamer {
 
     this.ws = new WebSocket(WS_URL);
 
-    await new Promise<void>((resolve, reject) => {
-      this.ws!.onopen = () => resolve();
-      this.ws!.onerror = () => reject(new Error("WebSocket connection failed"));
-    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(
+          () => reject(new Error("WebSocket connection timeout")),
+          WS_OPEN_TIMEOUT_MS,
+        );
+        this.ws!.onopen = () => {
+          clearTimeout(timeout);
+          resolve();
+        };
+        this.ws!.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error("WebSocket connection failed"));
+        };
+      });
+    } catch (err) {
+      this.stream.getTracks().forEach((t) => t.stop());
+      this.stream = null;
+      try {
+        this.ws.close();
+      } catch {
+        // already closed
+      }
+      this.ws = null;
+      throw err;
+    }
 
     this.ws.onmessage = (event) => {
       try {

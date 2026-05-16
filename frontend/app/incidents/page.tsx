@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ShieldAlert, AlertTriangle, CheckCircle2, Bell } from "lucide-react";
+import { ShieldAlert, AlertTriangle, CheckCircle2, Bell, X } from "lucide-react";
 import { listIncidents, sendAlert } from "@/lib/api";
 import type { Incident, RiskLevel } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+type Feedback = { kind: "success" | "error"; message: string };
 
 const RISK_CONFIG: Record<RiskLevel, { label: string; color: string; Icon: typeof ShieldAlert }> = {
   high: { label: "Alto riesgo", color: "text-red-600 bg-red-50 border-red-200", Icon: ShieldAlert },
@@ -24,6 +26,9 @@ export default function IncidentsPage() {
   const [filter, setFilter] = useState<RiskLevel | "all">("all");
   const [loading, setLoading] = useState(true);
   const [alerting, setAlerting] = useState<string | null>(null);
+  const [phoneModalFor, setPhoneModalFor] = useState<Incident | null>(null);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -34,15 +39,31 @@ export default function IncidentsPage() {
       .finally(() => setLoading(false));
   }, [filter]);
 
-  async function handleAlert(incident: Incident) {
-    const phone = prompt("Número de WhatsApp del familiar (ej: +521234567890):");
-    if (!phone) return;
+  function openAlertModal(incident: Incident) {
+    setPhoneInput("");
+    setPhoneModalFor(incident);
+  }
+
+  function closeAlertModal() {
+    setPhoneModalFor(null);
+    setPhoneInput("");
+  }
+
+  async function confirmAlert(e: React.FormEvent) {
+    e.preventDefault();
+    const incident = phoneModalFor;
+    const phone = phoneInput.trim();
+    if (!incident || !phone) return;
     setAlerting(incident.id);
+    closeAlertModal();
     try {
       await sendAlert(incident.id, phone);
-      alert("¡Alerta enviada por WhatsApp!");
+      setIncidents((prev) =>
+        prev.map((i) => (i.id === incident.id ? { ...i, alerted: true } : i)),
+      );
+      setFeedback({ kind: "success", message: "¡Alerta enviada por WhatsApp!" });
     } catch {
-      alert("No se pudo enviar la alerta.");
+      setFeedback({ kind: "error", message: "No se pudo enviar la alerta." });
     } finally {
       setAlerting(null);
     }
@@ -108,7 +129,7 @@ export default function IncidentsPage() {
                 </div>
                 {incident.risk_level === "high" && !incident.alerted && (
                   <button
-                    onClick={() => handleAlert(incident)}
+                    onClick={() => openAlertModal(incident)}
                     disabled={alerting === incident.id}
                     className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
                   >
@@ -133,6 +154,75 @@ export default function IncidentsPage() {
           );
         })}
       </section>
+
+      {feedback && (
+        <div
+          role="status"
+          className={cn(
+            "fixed inset-x-0 bottom-6 mx-auto flex max-w-md items-center justify-between gap-4 rounded-2xl border-2 px-5 py-4 shadow-lg",
+            feedback.kind === "success"
+              ? "border-green-300 bg-green-50 text-green-800"
+              : "border-red-300 bg-red-50 text-red-800",
+          )}
+        >
+          <span className="text-senior font-semibold">{feedback.message}</span>
+          <button
+            onClick={() => setFeedback(null)}
+            className="rounded-lg p-2 transition hover:bg-black/5"
+            aria-label="Cerrar mensaje"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+
+      {phoneModalFor && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="alert-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={closeAlertModal}
+        >
+          <form
+            onSubmit={confirmAlert}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl"
+          >
+            <h2 id="alert-modal-title" className="text-2xl font-extrabold text-gray-900">
+              Enviar alerta por WhatsApp
+            </h2>
+            <p className="mt-2 text-senior text-gray-700">
+              Escriba el número del familiar con código de país.
+            </p>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoFocus
+              required
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              placeholder="+521234567890"
+              className="mt-5 w-full rounded-xl border-2 border-gray-200 px-5 py-4 text-senior text-gray-900 outline-none focus:border-brand"
+            />
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
+              <button
+                type="submit"
+                className="rounded-2xl bg-red-600 px-6 py-4 text-senior font-extrabold text-white shadow-md transition hover:bg-red-700"
+              >
+                Enviar alerta
+              </button>
+              <button
+                type="button"
+                onClick={closeAlertModal}
+                className="rounded-2xl border-2 border-gray-300 bg-white px-6 py-4 text-senior font-bold text-gray-700 transition hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </main>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Mic, Square, Phone } from "lucide-react";
+import { Mic, Square, Phone, Upload } from "lucide-react";
 import { RiskIndicator } from "@/components/RiskIndicator";
 import { AudioStreamer } from "@/lib/audio";
 import { analyzeAudio } from "@/lib/api";
@@ -88,6 +88,24 @@ export default function Home() {
     chunksRef.current = [];
   }, []);
 
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setLiveScore(null);
+    setFinalResult(null);
+    setErrorMsg("");
+    setStatus("analyzing");
+    try {
+      const result = await analyzeAudio(file);
+      setFinalResult(result);
+      setStatus("done");
+    } catch {
+      setErrorMsg("No se pudo analizar el audio. Intenta de nuevo.");
+      setStatus("error");
+    }
+  }, []);
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
       {/* Hero */}
@@ -123,6 +141,17 @@ export default function Home() {
               <Mic className="h-9 w-9" />
               Analizar llamada
             </button>
+
+            <label className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-2xl border-2 border-brand bg-white px-8 py-5 text-senior font-bold text-brand transition hover:bg-brand-light">
+              <Upload className="h-6 w-6" />
+              Subir archivo de audio
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
           </div>
         )}
 
