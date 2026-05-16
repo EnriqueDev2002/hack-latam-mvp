@@ -78,7 +78,7 @@ export default function EnrollPage() {
             </label>
             <button
               type="submit"
-              className="rounded-2xl bg-blue-600 px-8 py-5 text-senior font-semibold text-white shadow-md transition hover:bg-blue-700"
+              className="rounded-2xl bg-brand px-8 py-5 text-senior font-extrabold text-white shadow-md transition hover:bg-brand-dark"
             >
               Continuar
             </button>
@@ -108,7 +108,7 @@ export default function EnrollPage() {
             </p>
             <button
               onClick={reset}
-              className="rounded-2xl bg-blue-600 px-8 py-5 text-senior font-semibold text-white shadow-md transition hover:bg-blue-700"
+              className="rounded-2xl bg-brand px-8 py-5 text-senior font-extrabold text-white shadow-md transition hover:bg-brand-dark"
             >
               Registrar otro contacto
             </button>
@@ -120,7 +120,7 @@ export default function EnrollPage() {
             <p className="text-senior text-red-600">{errorMsg}</p>
             <button
               onClick={reset}
-              className="rounded-2xl bg-gray-200 px-8 py-5 text-senior font-semibold text-gray-800 transition hover:bg-gray-300"
+              className="rounded-2xl border-2 border-brand bg-white px-8 py-5 text-senior font-bold text-brand transition hover:bg-brand-light"
             >
               Intentar de nuevo
             </button>

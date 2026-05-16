@@ -89,38 +89,38 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
+    <main className="mx-auto max-w-2xl px-6 py-10">
       {/* Hero */}
-      <div className="mb-10 text-center">
-        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
-          <Phone className="h-10 w-10 text-blue-600" />
+      <div className="mb-8 text-center">
+        <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-brand-light">
+          <Phone className="h-12 w-12 text-brand" />
         </div>
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900">VoiceGuard</h1>
-        <p className="mt-3 text-senior text-gray-700">
-          ¿Recibes una llamada y no estás seguro si es tu familiar?
-          <br />
-          <strong>Graba la voz y te decimos si es real o falsa.</strong>
+        <h1 className="text-4xl font-extrabold tracking-tight text-brand">VoiceGuard</h1>
+        <p className="mt-3 text-senior font-semibold text-gray-800">
+          ¿No sabes si la voz en la llamada es real?
         </p>
+        <p className="text-senior text-gray-700">Grábala y te decimos en segundos.</p>
       </div>
 
       {/* Main action card */}
-      <section className="rounded-2xl border-2 border-gray-100 bg-white p-8 shadow-sm">
+      <section className="rounded-3xl border-2 border-amber-100 bg-white p-8 shadow-md">
         {(status === "idle" || status === "error") && (
           <div className="flex flex-col gap-6">
-            <p className="text-center text-senior font-medium text-gray-800">
-              Presiona el botón y acerca el teléfono al micrófono mientras escuchas la llamada.
-            </p>
-            {status === "error" && (
-              <p className="rounded-xl bg-red-50 p-4 text-center text-senior text-red-700">
+            {status === "error" ? (
+              <p className="rounded-2xl bg-red-50 p-5 text-center text-senior font-semibold text-red-800">
                 {errorMsg}
+              </p>
+            ) : (
+              <p className="text-center text-senior font-medium text-gray-700">
+                Presione el botón mientras escucha la llamada
               </p>
             )}
             <button
               type="button"
               onClick={startRecording}
-              className="flex w-full items-center justify-center gap-4 rounded-2xl bg-blue-600 px-8 py-7 text-2xl font-bold text-white shadow-lg transition hover:bg-blue-700 active:scale-95"
+              className="flex w-full items-center justify-center gap-4 rounded-2xl bg-brand px-8 py-8 text-2xl font-extrabold text-white shadow-lg transition hover:bg-brand-dark active:scale-95"
             >
-              <Mic className="h-8 w-8" />
+              <Mic className="h-9 w-9" />
               Analizar llamada
             </button>
           </div>
@@ -128,14 +128,14 @@ export default function Home() {
 
         {status === "recording" && (
           <div className="flex flex-col items-center gap-6">
-            <div className="flex items-center gap-3">
-              <span className="inline-block h-4 w-4 animate-pulse rounded-full bg-red-500" />
-              <p className="text-senior font-semibold text-gray-800">Grabando…</p>
+            <div className="flex flex-col items-center gap-2">
+              <span className="inline-block h-6 w-6 animate-pulse rounded-full bg-red-500" />
+              <p className="text-2xl font-extrabold text-gray-900">Grabando…</p>
+              <p className="text-senior text-gray-600">Acerque el teléfono al micrófono</p>
             </div>
 
             {liveScore && (
               <div className="w-full">
-                <p className="mb-2 text-sm font-medium text-gray-500">Análisis en tiempo real:</p>
                 <RiskIndicator result={liveScore} />
               </div>
             )}
@@ -143,16 +143,20 @@ export default function Home() {
             <button
               type="button"
               onClick={stopAnalysis}
-              className="flex w-full items-center justify-center gap-4 rounded-2xl bg-red-600 px-8 py-7 text-2xl font-bold text-white shadow-lg transition hover:bg-red-700 active:scale-95"
+              className="flex w-full items-center justify-center gap-4 rounded-2xl bg-red-600 px-8 py-8 text-2xl font-extrabold text-white shadow-lg transition hover:bg-red-700 active:scale-95"
             >
-              <Square className="h-8 w-8" />
-              Detener y analizar
+              <Square className="h-9 w-9" />
+              Detener y ver resultado
             </button>
           </div>
         )}
 
         {status === "analyzing" && (
-          <p className="py-8 text-center text-senior text-gray-500">Analizando la voz…</p>
+          <div className="flex flex-col items-center gap-4 py-6">
+            <span className="text-5xl">🔍</span>
+            <p className="text-2xl font-bold text-gray-800">Analizando la voz…</p>
+            <p className="text-senior text-gray-600">Espere un momento</p>
+          </div>
         )}
 
         {status === "done" && finalResult && (
@@ -161,7 +165,7 @@ export default function Home() {
             <button
               type="button"
               onClick={reset}
-              className="rounded-2xl bg-gray-100 px-8 py-5 text-senior font-semibold text-gray-800 transition hover:bg-gray-200"
+              className="rounded-2xl border-2 border-brand bg-white px-8 py-5 text-senior font-bold text-brand transition hover:bg-brand-light"
             >
               Analizar otra llamada
             </button>
@@ -169,14 +173,23 @@ export default function Home() {
         )}
       </section>
 
-      {/* How it works — for elderly UX */}
-      <section className="mt-8 rounded-2xl bg-blue-50 p-6">
-        <h2 className="text-xl font-bold text-blue-900">¿Cómo funciona?</h2>
-        <ol className="mt-3 flex flex-col gap-3 text-senior font-medium text-blue-900">
-          <li><span className="font-bold">1.</span> Recibe la llamada de quien dice ser tu familiar.</li>
-          <li><span className="font-bold">2.</span> Abre VoiceGuard y presiona "Analizar llamada".</li>
-          <li><span className="font-bold">3.</span> Acerca el teléfono al micrófono de tu computadora.</li>
-          <li><span className="font-bold">4.</span> Presiona "Detener" y ve el resultado en segundos.</li>
+      {/* Steps */}
+      <section className="mt-8 rounded-3xl bg-brand-light p-6">
+        <h2 className="text-xl font-extrabold text-brand">¿Cómo se usa?</h2>
+        <ol className="mt-4 flex flex-col gap-4">
+          {[
+            "Reciba la llamada del supuesto familiar.",
+            'Presione el botón grande "Analizar llamada".',
+            "Acerque el teléfono al micrófono.",
+            'Presione "Detener" y vea el resultado.',
+          ].map((step, i) => (
+            <li key={i} className="flex items-start gap-4">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand text-base font-extrabold text-white">
+                {i + 1}
+              </span>
+              <span className="text-senior font-semibold text-brand-dark">{step}</span>
+            </li>
+          ))}
         </ol>
       </section>
     </main>

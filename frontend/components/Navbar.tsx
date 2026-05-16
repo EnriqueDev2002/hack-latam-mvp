@@ -14,19 +14,19 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <header className="border-b-2 border-gray-200 bg-white shadow-sm">
+    <header className="border-b-2 border-amber-100 bg-cream shadow-sm">
       <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-4">
-        <span className="text-2xl font-bold tracking-tight text-blue-700">VoiceGuard</span>
+        <span className="text-2xl font-extrabold tracking-tight text-brand">VoiceGuard</span>
         <nav className="flex gap-2">
           {links.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               className={cn(
-                "rounded-xl px-5 py-3 text-base font-semibold transition-colors",
+                "rounded-xl px-5 py-3 text-base font-bold transition-colors",
                 pathname === href
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+                  ? "bg-brand text-white"
+                  : "text-brand hover:bg-brand-light",
               )}
             >
               {label}

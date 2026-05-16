@@ -1,4 +1,3 @@
-import { AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import type { AnalyzeResponse, RiskLevel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -8,43 +7,57 @@ interface Props {
 
 const RISK_COPY: Record<
   RiskLevel,
-  { title: string; subtitle: string; bg: string; icon: typeof CheckCircle2 }
+  { emoji: string; title: string; subtitle: string; bg: string; border: string }
 > = {
   low: {
+    emoji: "✅",
     title: "Voz auténtica",
-    subtitle: "Esta voz parece real. Puede continuar con la llamada.",
-    bg: "bg-risk-low",
-    icon: CheckCircle2,
+    subtitle: "Esta voz parece real.\nPuede continuar con la llamada.",
+    bg: "bg-green-50",
+    border: "border-green-500",
   },
   medium: {
+    emoji: "⚠️",
     title: "Voz sospechosa",
-    subtitle: "Hay dudas sobre esta voz. Pida que le llamen de nuevo.",
-    bg: "bg-risk-medium",
-    icon: AlertTriangle,
+    subtitle: "Hay dudas sobre esta voz.\nPida que le llamen de nuevo.",
+    bg: "bg-amber-50",
+    border: "border-amber-500",
   },
   high: {
+    emoji: "🚨",
     title: "¡Posible fraude!",
-    subtitle: "Esta voz parece generada por computadora. No comparta datos ni dinero.",
-    bg: "bg-risk-high",
-    icon: ShieldAlert,
+    subtitle: "Esta voz parece falsa.\nNo comparta datos ni dinero.",
+    bg: "bg-red-50",
+    border: "border-red-600",
   },
 };
 
+const TEXT_COLOR: Record<RiskLevel, string> = {
+  low: "text-green-800",
+  medium: "text-amber-800",
+  high: "text-red-800",
+};
+
 export function RiskIndicator({ result }: Props) {
-  const { title, subtitle, bg, icon: Icon } = RISK_COPY[result.risk_level];
+  const { emoji, title, subtitle, bg, border } = RISK_COPY[result.risk_level];
+  const textColor = TEXT_COLOR[result.risk_level];
   const pct = Math.round(result.confidence * 100);
 
   return (
-    <div className={cn("rounded-2xl p-6 text-white shadow-lg", bg)}>
-      <div className="flex items-center gap-3">
-        <Icon className="h-9 w-9 flex-shrink-0" />
-        <h2 className="text-2xl font-bold leading-tight">{title}</h2>
+    <div className={cn("rounded-2xl border-4 p-6 shadow-md", bg, border)}>
+      <div className="flex items-center gap-4">
+        <span className="text-5xl leading-none">{emoji}</span>
+        <h2 className={cn("text-3xl font-extrabold leading-tight", textColor)}>{title}</h2>
       </div>
-      <p className="mt-3 text-senior font-medium leading-snug">{subtitle}</p>
-      <p className="mt-2 text-base opacity-90">Confianza del análisis: {pct}%</p>
+      <p className={cn("mt-4 whitespace-pre-line text-senior font-semibold", textColor)}>
+        {subtitle}
+      </p>
+      <p className={cn("mt-3 text-base font-medium opacity-70", textColor)}>
+        Confianza del análisis: {pct}%
+      </p>
       {result.speaker_match === false && result.matched_contact && (
-        <p className="mt-2 text-senior font-semibold">
-          La voz no coincide con <strong>{result.matched_contact}</strong>.
+        <p className={cn("mt-2 text-senior font-bold", textColor)}>
+          La voz no coincide con {result.matched_contact}.
         </p>
       )}
     </div>
