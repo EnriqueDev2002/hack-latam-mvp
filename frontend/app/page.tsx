@@ -1,226 +1,284 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { Mic, Square, Phone, Upload } from "lucide-react";
-import { RiskIndicator } from "@/components/RiskIndicator";
-import { AudioStreamer } from "@/lib/audio";
-import { analyzeAudio } from "@/lib/api";
-import type { AnalyzeResponse } from "@/lib/types";
-
-type Status = "idle" | "recording" | "analyzing" | "done" | "error";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import {
+  Mic,
+  ShieldCheck,
+  Phone,
+  AlertTriangle,
+  UserCheck,
+  Bell,
+  Zap,
+  Brain,
+  Fingerprint,
+  MessageSquare,
+} from "lucide-react";
+import { getStats } from "@/lib/api";
+import type { Stats } from "@/lib/types";
 
 export default function Home() {
-  const [status, setStatus] = useState<Status>("idle");
-  const [liveScore, setLiveScore] = useState<AnalyzeResponse | null>(null);
-  const [finalResult, setFinalResult] = useState<AnalyzeResponse | null>(null);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [stats, setStats] = useState<Stats | null>(null);
 
-  const streamerRef = useRef<AudioStreamer | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-
-  const startRecording = useCallback(async () => {
-    setStatus("recording");
-    setLiveScore(null);
-    setFinalResult(null);
-    setErrorMsg("");
-    chunksRef.current = [];
-
-    // Try WebSocket streaming for live scores
-    const streamer = new AudioStreamer();
-    streamerRef.current = streamer;
-    try {
-      await streamer.start(
-        (score) => setLiveScore(score),
-        () => { /* WS error mid-stream, REST fallback handles final result */ },
-      );
-    } catch {
-      // WS unavailable — REST-only mode, that's fine
-      streamerRef.current = null;
-    }
-
-    // Always capture full blob for REST fallback
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      recorder.start(500);
-      recorderRef.current = recorder;
-    } catch {
-      streamerRef.current?.stop();
-      setErrorMsg("No se pudo acceder al micrófono. Verifica los permisos.");
-      setStatus("error");
-    }
-  }, []);
-
-  const stopAnalysis = useCallback(async () => {
-    streamerRef.current?.stop();
-
-    const recorder = recorderRef.current;
-    if (!recorder) return;
-
-    await new Promise<void>((resolve) => {
-      recorder.onstop = () => resolve();
-      recorder.stop();
-      recorder.stream.getTracks().forEach((t) => t.stop());
-    });
-    recorderRef.current = null;
-    setStatus("analyzing");
-
-    try {
-      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      const result = await analyzeAudio(blob);
-      setFinalResult(result);
-      setStatus("done");
-    } catch {
-      setErrorMsg("No se pudo analizar el audio. Intenta de nuevo.");
-      setStatus("error");
-    }
-  }, []);
-
-  const reset = useCallback(() => {
-    setStatus("idle");
-    setLiveScore(null);
-    setFinalResult(null);
-    setErrorMsg("");
-    chunksRef.current = [];
-  }, []);
-
-  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setLiveScore(null);
-    setFinalResult(null);
-    setErrorMsg("");
-    setStatus("analyzing");
-    try {
-      const result = await analyzeAudio(file);
-      setFinalResult(result);
-      setStatus("done");
-    } catch {
-      setErrorMsg("No se pudo analizar el audio. Intenta de nuevo.");
-      setStatus("error");
-    }
+  useEffect(() => {
+    getStats().then(setStats).catch(() => {});
   }, []);
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      {/* Hero */}
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-brand-light">
-          <Phone className="h-12 w-12 text-brand" />
+    <main>
+      {/* ── Hero ── */}
+      <section
+        className="px-6 py-20 sm:py-28"
+        style={{
+          background: "linear-gradient(160deg, #EFF6FF 0%, #F8FAFC 55%, #F0FDF4 100%)",
+        }}
+      >
+        <div className="mx-auto max-w-2xl text-center">
+          {/* Icon */}
+          <div
+            className="mx-auto mb-8 flex h-28 w-28 items-center justify-center rounded-[28px] shadow-brand-lg"
+            style={{ background: "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)" }}
+          >
+            <ShieldCheck className="h-16 w-16 text-white" strokeWidth={1.75} />
+          </div>
+
+          <h1 className="text-5xl font-bold tracking-tight text-neutral-900 sm:text-6xl">
+            Voice<span className="text-gradient-brand">Guard</span>
+          </h1>
+
+          <p className="mt-5 text-2xl font-semibold text-neutral-700 sm:text-3xl" style={{ letterSpacing: "-0.01em" }}>
+            Protege a tu familia del fraude de voz clonada
+          </p>
+
+          <p className="mx-auto mt-5 max-w-xl text-senior text-neutral-600">
+            Detecta en segundos si una llamada usa una voz creada por inteligencia artificial.
+            Diseñado para adultos mayores y sus familias.
+          </p>
+
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <Link href="/demo" className="btn-primary w-full sm:w-auto text-lg px-10 py-5">
+              ▶ Ver demo en vivo
+            </Link>
+            <Link href="/analyze" className="btn-secondary w-full sm:w-auto text-lg px-10 py-5">
+              <Mic className="h-5 w-5" />
+              Probar con tu voz
+            </Link>
+          </div>
         </div>
-        <h1 className="text-4xl font-extrabold tracking-tight text-brand">VoiceGuard</h1>
-        <p className="mt-3 text-senior font-semibold text-gray-800">
-          ¿No sabes si la voz en la llamada es real?
-        </p>
-        <p className="text-senior text-gray-700">Grábala y te decimos en segundos.</p>
-      </div>
-
-      {/* Main action card */}
-      <section className="rounded-3xl border-2 border-amber-100 bg-white p-8 shadow-md">
-        {(status === "idle" || status === "error") && (
-          <div className="flex flex-col gap-6">
-            {status === "error" ? (
-              <p className="rounded-2xl bg-red-50 p-5 text-center text-senior font-semibold text-red-800">
-                {errorMsg}
-              </p>
-            ) : (
-              <p className="text-center text-senior font-medium text-gray-700">
-                Presione el botón mientras escucha la llamada
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={startRecording}
-              className="flex w-full items-center justify-center gap-4 rounded-2xl bg-brand px-8 py-8 text-2xl font-extrabold text-white shadow-lg transition hover:bg-brand-dark active:scale-95"
-            >
-              <Mic className="h-9 w-9" />
-              Analizar llamada
-            </button>
-
-            <label className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-2xl border-2 border-brand bg-white px-8 py-5 text-senior font-bold text-brand transition hover:bg-brand-light">
-              <Upload className="h-6 w-6" />
-              Subir archivo de audio
-              <input
-                type="file"
-                accept="audio/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
-          </div>
-        )}
-
-        {status === "recording" && (
-          <div className="flex flex-col items-center gap-6">
-            <div className="flex flex-col items-center gap-2">
-              <span className="inline-block h-6 w-6 animate-pulse rounded-full bg-red-500" />
-              <p className="text-2xl font-extrabold text-gray-900">Grabando…</p>
-              <p className="text-senior text-gray-600">Acerque el teléfono al micrófono</p>
-            </div>
-
-            {liveScore && (
-              <div className="w-full">
-                <RiskIndicator result={liveScore} />
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={stopAnalysis}
-              className="flex w-full items-center justify-center gap-4 rounded-2xl bg-red-600 px-8 py-8 text-2xl font-extrabold text-white shadow-lg transition hover:bg-red-700 active:scale-95"
-            >
-              <Square className="h-9 w-9" />
-              Detener y ver resultado
-            </button>
-          </div>
-        )}
-
-        {status === "analyzing" && (
-          <div className="flex flex-col items-center gap-4 py-6">
-            <span className="text-5xl">🔍</span>
-            <p className="text-2xl font-bold text-gray-800">Analizando la voz…</p>
-            <p className="text-senior text-gray-600">Espere un momento</p>
-          </div>
-        )}
-
-        {status === "done" && finalResult && (
-          <div className="flex flex-col gap-6">
-            <RiskIndicator result={finalResult} />
-            <button
-              type="button"
-              onClick={reset}
-              className="rounded-2xl border-2 border-brand bg-white px-8 py-5 text-senior font-bold text-brand transition hover:bg-brand-light"
-            >
-              Analizar otra llamada
-            </button>
-          </div>
-        )}
       </section>
 
-      {/* Steps */}
-      <section className="mt-8 rounded-3xl bg-brand-light p-6">
-        <h2 className="text-xl font-extrabold text-brand">¿Cómo se usa?</h2>
-        <ol className="mt-4 flex flex-col gap-4">
-          {[
-            "Reciba la llamada del supuesto familiar.",
-            'Presione el botón grande "Analizar llamada".',
-            "Acerque el teléfono al micrófono.",
-            'Presione "Detener" y vea el resultado.',
-          ].map((step, i) => (
-            <li key={i} className="flex items-start gap-4">
-              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand text-base font-extrabold text-white">
-                {i + 1}
-              </span>
-              <span className="text-senior font-semibold text-brand-dark">{step}</span>
-            </li>
-          ))}
-        </ol>
+      {/* ── Problem statement ── */}
+      <section className="bg-white px-6 py-16">
+        <div className="mx-auto max-w-2xl">
+          <div
+            className="rounded-[20px] border border-danger-bg p-8"
+            style={{ background: "linear-gradient(160deg, #FEF2F2 0%, #FFFFFF 50%)" }}
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-danger-bg">
+                <AlertTriangle className="h-6 w-6 text-danger" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-red-900">
+                  El fraude por voz clonada creció{" "}
+                  <span className="text-danger">800%</span> en Latinoamérica
+                </h2>
+                <p className="mt-3 text-senior text-red-800">
+                  Estafadores usan IA para imitar la voz de un familiar y pedir dinero.
+                  Una llamada de 3 segundos basta para crear una réplica convincente.
+                </p>
+                <p className="mt-3 text-senior font-semibold text-red-900">
+                  VoiceGuard analiza la llamada en vivo y te avisa si la voz es real o falsa.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Stats ── */}
+      <section className="bg-neutral-50 px-6 py-16">
+        <div className="mx-auto max-w-3xl">
+          <p className="mb-2 text-center text-sm font-semibold uppercase tracking-widest text-brand">
+            Impacto real
+          </p>
+          <h2 className="text-center text-3xl font-bold text-neutral-900">
+            VoiceGuard en acción
+          </h2>
+          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <StatCard
+              icon={<Phone className="h-7 w-7" />}
+              label="Llamadas analizadas"
+              value={stats?.total_analyses ?? "—"}
+              color="brand"
+            />
+            <StatCard
+              icon={<AlertTriangle className="h-7 w-7" />}
+              label="Fraudes detectados"
+              value={stats?.fraud_detected ?? "—"}
+              color="danger"
+            />
+            <StatCard
+              icon={<UserCheck className="h-7 w-7" />}
+              label="Personas protegidas"
+              value={stats?.contacts_protected ?? "—"}
+              color="success"
+            />
+            <StatCard
+              icon={<Bell className="h-7 w-7" />}
+              label="Alertas enviadas"
+              value={stats?.alerts_sent ?? "—"}
+              color="brand"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ── How it works ── */}
+      <section className="bg-white px-6 py-16">
+        <div className="mx-auto max-w-2xl">
+          <p className="mb-2 text-center text-sm font-semibold uppercase tracking-widest text-brand">
+            Proceso
+          </p>
+          <h2 className="text-center text-3xl font-bold text-neutral-900">¿Cómo funciona?</h2>
+          <ol className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {[
+              {
+                n: 1,
+                title: "Registra voces de confianza",
+                body: "Graba la voz de tu familiar una sola vez. VoiceGuard crea una huella única y privada.",
+              },
+              {
+                n: 2,
+                title: "Analiza la llamada",
+                body: "Cuando recibas una llamada extraña, acerca el teléfono y presiona el botón.",
+              },
+              {
+                n: 3,
+                title: "Recibe el veredicto",
+                body: "VoiceGuard te dice en segundos si es la voz real, desconocida o una suplantación con IA.",
+              },
+            ].map(({ n, title, body }, i) => (
+              <li
+                key={n}
+                className="card p-6"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div
+                  className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl text-base font-bold text-white shadow-brand"
+                  style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
+                >
+                  {n}
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900">{title}</h3>
+                <p className="mt-2 text-base text-neutral-600 leading-relaxed">{body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* ── Tech ── */}
+      <section className="px-6 py-16" style={{ background: "linear-gradient(135deg, #1E40AF 0%, #1d4ed8 100%)" }}>
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-blue-200">
+            Tecnología
+          </p>
+          <h2 className="text-3xl font-bold text-white">La ciencia detrás de VoiceGuard</h2>
+          <div className="mt-10 grid grid-cols-1 gap-4 text-left sm:grid-cols-2">
+            {[
+              {
+                Icon: Brain,
+                title: "Detector con IA pre-entrenada",
+                body: "Modelo wav2vec2 fine-tuned en miles de muestras de voz real y sintética.",
+              },
+              {
+                Icon: Fingerprint,
+                title: "Verificación de identidad",
+                body: "Comparación con voces registradas usando embeddings de resemblyzer.",
+              },
+              {
+                Icon: Zap,
+                title: "Análisis en tiempo real",
+                body: "WebSocket streaming devuelve un score cada 2 segundos durante la llamada.",
+              },
+              {
+                Icon: MessageSquare,
+                title: "Alerta a la familia",
+                body: "Notificación inmediata por WhatsApp cuando se detecta una suplantación.",
+              },
+            ].map(({ Icon, title, body }) => (
+              <div
+                key={title}
+                className="rounded-[20px] p-6 transition-all duration-200 hover:bg-white/10"
+                style={{ backgroundColor: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+              >
+                <Icon className="mb-3 h-6 w-6 text-blue-200" strokeWidth={1.75} />
+                <h3 className="text-lg font-bold text-white">{title}</h3>
+                <p className="mt-2 text-base text-blue-100 leading-relaxed">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Final CTA ── */}
+      <section className="bg-neutral-50 px-6 py-16">
+        <div
+          className="mx-auto max-w-2xl rounded-[24px] p-10 text-center"
+          style={{ background: "linear-gradient(160deg, #EFF6FF 0%, #FFFFFF 60%)", border: "1px solid #DBEAFE" }}
+        >
+          <h2 className="text-3xl font-bold text-neutral-900">
+            Empieza ahora — toma 2 minutos
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-senior text-neutral-600">
+            Registra la voz de tu familiar y prueba el detector. Cuando llegue una llamada
+            sospechosa, estarás listo.
+          </p>
+          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <Link href="/enroll" className="btn-primary w-full sm:w-auto text-lg px-10 py-5">
+              <UserCheck className="h-5 w-5" />
+              Registrar primer contacto
+            </Link>
+            <Link href="/analyze" className="btn-secondary w-full sm:w-auto text-lg px-10 py-5">
+              <Mic className="h-5 w-5" />
+              Probar el detector
+            </Link>
+          </div>
+        </div>
       </section>
     </main>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+  color: "brand" | "danger" | "success";
+}) {
+  const colorMap = {
+    brand: { icon: "#2563EB", value: "#2563EB", bg: "#EFF6FF" },
+    danger: { icon: "#DC2626", value: "#DC2626", bg: "#FEF2F2" },
+    success: { icon: "#16A34A", value: "#16A34A", bg: "#F0FDF4" },
+  };
+  const c = colorMap[color];
+
+  return (
+    <div className="card card-hover p-6 text-center">
+      <div
+        className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl"
+        style={{ backgroundColor: c.bg, color: c.icon }}
+      >
+        {icon}
+      </div>
+      <p className="text-4xl font-bold" style={{ color: c.value }}>{value}</p>
+      <p className="mt-2 text-sm font-semibold text-neutral-500 leading-tight">{label}</p>
+    </div>
   );
 }

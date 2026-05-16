@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 
 from db import engine
-from routers import alerts, analyze, enroll, incidents
+from routers import alerts, analyze, challenge, enroll, incidents
 from services.deepfake_detector import warmup as warmup_deepfake
 
 
@@ -50,4 +50,5 @@ app.include_router(analyze.router, prefix="/api", tags=["analyze"])
 app.include_router(enroll.router, prefix="/api", tags=["enroll"])
 app.include_router(incidents.router, prefix="/api", tags=["incidents"])
 app.include_router(alerts.router, prefix="/api", tags=["alerts"])
+app.include_router(challenge.router, prefix="/api", tags=["challenge"])
 app.include_router(analyze.ws_router)
