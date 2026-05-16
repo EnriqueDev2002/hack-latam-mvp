@@ -19,7 +19,7 @@ export function ContactCard({ contact }: Props) {
       </div>
       <div className="flex-1">
         <p className="text-senior font-semibold text-gray-900">{contact.name}</p>
-        <p className="text-sm text-gray-500">Registrado el {enrolled}</p>
+        <p className="text-sm font-medium text-gray-600">Registrado el {enrolled}</p>
       </div>
     </div>
   );

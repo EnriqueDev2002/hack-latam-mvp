@@ -96,7 +96,7 @@ export default function Home() {
           <Phone className="h-10 w-10 text-blue-600" />
         </div>
         <h1 className="text-4xl font-bold tracking-tight text-gray-900">VoiceGuard</h1>
-        <p className="mt-3 text-senior text-gray-600">
+        <p className="mt-3 text-senior text-gray-700">
           ¿Recibes una llamada y no estás seguro si es tu familiar?
           <br />
           <strong>Graba la voz y te decimos si es real o falsa.</strong>
@@ -107,7 +107,7 @@ export default function Home() {
       <section className="rounded-2xl border-2 border-gray-100 bg-white p-8 shadow-sm">
         {(status === "idle" || status === "error") && (
           <div className="flex flex-col gap-6">
-            <p className="text-center text-senior text-gray-700">
+            <p className="text-center text-senior font-medium text-gray-800">
               Presiona el botón y acerca el teléfono al micrófono mientras escuchas la llamada.
             </p>
             {status === "error" && (
@@ -172,7 +172,7 @@ export default function Home() {
       {/* How it works — for elderly UX */}
       <section className="mt-8 rounded-2xl bg-blue-50 p-6">
         <h2 className="text-xl font-bold text-blue-900">¿Cómo funciona?</h2>
-        <ol className="mt-3 flex flex-col gap-3 text-senior text-blue-800">
+        <ol className="mt-3 flex flex-col gap-3 text-senior font-medium text-blue-900">
           <li><span className="font-bold">1.</span> Recibe la llamada de quien dice ser tu familiar.</li>
           <li><span className="font-bold">2.</span> Abre VoiceGuard y presiona "Analizar llamada".</li>
           <li><span className="font-bold">3.</span> Acerca el teléfono al micrófono de tu computadora.</li>

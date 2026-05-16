@@ -51,7 +51,7 @@ export default function IncidentsPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <h1 className="text-3xl font-bold text-gray-900">Historial de alertas</h1>
-      <p className="mt-2 text-senior text-gray-600">
+      <p className="mt-2 text-senior text-gray-700">
         Llamadas y audios analizados recientemente.
       </p>
 

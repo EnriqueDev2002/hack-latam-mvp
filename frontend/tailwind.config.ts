@@ -9,13 +9,13 @@ const config: Config = {
     extend: {
       colors: {
         risk: {
-          low: "#10b981",
-          medium: "#f59e0b",
-          high: "#ef4444",
+          low: "#059669",
+          medium: "#d97706",
+          high: "#dc2626",
         },
       },
       fontSize: {
-        senior: "1.25rem",
+        senior: ["1.25rem", { lineHeight: "1.75rem" }],
       },
     },
   },
