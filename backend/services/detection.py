@@ -1,8 +1,12 @@
+import logging
 from typing import Literal
 
 from pydantic import BaseModel
 
 from .audio_processing import extract_features, load_audio
+from .deepfake_detector import detect_deepfake
+
+logger = logging.getLogger(__name__)
 
 
 class DetectionResult(BaseModel):
@@ -11,17 +15,9 @@ class DetectionResult(BaseModel):
     risk_level: Literal["low", "medium", "high"]
 
 
-def run_pipeline(audio_bytes: bytes) -> DetectionResult:
-    try:
-        samples, sr = load_audio(audio_bytes)
-        features = extract_features(samples, sr)
-    except Exception:
-        return DetectionResult(is_synthetic=False, confidence=0.1, risk_level="low")
-
+def _heuristic_score(features: dict) -> float:
+    """4-indicator rule-based score (legacy detector)."""
     pitch_std = features["pitch_std"]
-
-    # Indicator 1: pitch stability (weight 0.35)
-    # Low pitch_std → monotone → synthetic; zero → no voiced frames → inconclusive
     if pitch_std == 0.0:
         ind_pitch = 0.5
     elif pitch_std < 10:
@@ -31,8 +27,6 @@ def run_pipeline(audio_bytes: bytes) -> DetectionResult:
     else:
         ind_pitch = 0.0
 
-    # Indicator 2: spectral flatness (weight 0.25)
-    # Natural speech sits in 0.05–0.35; extremes suggest TTS artifacts
     sf_mean = features["spectral_flatness_mean"]
     if sf_mean < 0.03 or sf_mean > 0.55:
         ind_flatness = 0.7
@@ -41,37 +35,107 @@ def run_pipeline(audio_bytes: bytes) -> DetectionResult:
     else:
         ind_flatness = 0.0
 
-    # Indicator 3: MFCC variance (weight 0.25)
-    # Low std on MFCC[1] → compressed dynamic range → synthetic
     mfcc_std_1 = features["mfcc_std_1"]
-    if mfcc_std_1 < 8:
-        ind_mfcc = 0.8
-    elif mfcc_std_1 < 15:
-        ind_mfcc = 0.3
-    else:
-        ind_mfcc = 0.0
+    ind_mfcc = 0.8 if mfcc_std_1 < 8 else (0.3 if mfcc_std_1 < 15 else 0.0)
 
-    # Indicator 4: zero-crossing rate (weight 0.15)
-    # Values outside 0.01–0.25 are atypical for natural speech
     zcr = features["zcr_mean"]
-    if zcr < 0.01 or zcr > 0.25:
-        ind_zcr = 0.6
-    else:
-        ind_zcr = 0.0
+    ind_zcr = 0.6 if (zcr < 0.01 or zcr > 0.25) else 0.0
 
-    synthetic_score = (
-        ind_pitch * 0.35
-        + ind_flatness * 0.25
-        + ind_mfcc * 0.25
-        + ind_zcr * 0.15
-    )
+    return ind_pitch * 0.35 + ind_flatness * 0.25 + ind_mfcc * 0.25 + ind_zcr * 0.15
 
-    is_synthetic = synthetic_score >= 0.45
-    risk_level = risk_from_confidence(synthetic_score)
+
+def _naturalness_score(features: dict) -> float:
+    """
+    0..1 score for how 'naturally human' the audio sounds.
+    Combines pitch variance (>30 = expressive) and MFCC variance (>25 = dynamic).
+    High naturalness → likely genuine speech regardless of what HF model says.
+    """
+    pitch_factor = min(features["pitch_std"] / 40.0, 1.0)
+    mfcc_factor = min(features["mfcc_std_1"] / 30.0, 1.0)
+
+    zcr = features["zcr_mean"]
+    zcr_ok = 0.01 < zcr < 0.25
+    sf = features["spectral_flatness_mean"]
+    sf_ok = 0.03 < sf < 0.45
+
+    base = (pitch_factor + mfcc_factor) / 2
+    if not zcr_ok:
+        base *= 0.7
+    if not sf_ok:
+        base *= 0.8
+    return base
+
+
+def _ensemble(hf_score: float, features: dict) -> tuple[float, str]:
+    """
+    Combine HF model output with heuristic 'naturalness' veto.
+    Returns (final_score, reason).
+    """
+    h_score = _heuristic_score(features)
+    nat = _naturalness_score(features)
+
+    # Case 1: heuristics show strong human voice markers AND HF disagrees → likely HF false positive
+    # (browser MediaRecorder + Opus compression seems to trigger wav2vec2 deepfake models)
+    if hf_score > 0.85 and nat > 0.70:
+        final = max(h_score, 0.10)  # at most low risk
+        return final, f"human_veto (nat={nat:.2f}, h={h_score:.2f}, hf={hf_score:.2f})"
+
+    # Case 2: heuristics confidently say synthetic and HF agrees → high confidence fake
+    if h_score >= 0.45 and hf_score >= 0.5:
+        final = max(h_score, hf_score)
+        return final, f"both_synthetic (h={h_score:.2f}, hf={hf_score:.2f})"
+
+    # Case 3: both confidently say real
+    if h_score < 0.25 and hf_score < 0.3:
+        final = (h_score + hf_score) / 2
+        return final, f"both_real (h={h_score:.2f}, hf={hf_score:.2f})"
+
+    # Default: HF model is the primary signal (catches modern TTS where heuristics fail)
+    return hf_score, f"hf_primary (h={h_score:.2f}, hf={hf_score:.2f})"
+
+
+def run_pipeline(audio_bytes: bytes) -> DetectionResult:
+    try:
+        samples, sr = load_audio(audio_bytes)
+    except Exception:
+        return DetectionResult(is_synthetic=False, confidence=0.1, risk_level="low")
+
+    try:
+        features = extract_features(samples, sr)
+    except Exception:
+        features = None
+
+    hf_result = detect_deepfake(samples, sr)
+
+    # If HF unavailable, fall back to heuristic-only
+    if hf_result is None:
+        if features is None:
+            return DetectionResult(is_synthetic=False, confidence=0.1, risk_level="low")
+        score = _heuristic_score(features)
+        logger.info("detector=heuristic-only score=%.3f", score)
+        return DetectionResult(
+            is_synthetic=score >= 0.45,
+            confidence=round(score, 4),
+            risk_level=risk_from_confidence(score),
+        )
+
+    # If feature extraction failed, trust HF model alone
+    if features is None:
+        s = hf_result["confidence"]
+        return DetectionResult(
+            is_synthetic=hf_result["is_synthetic"],
+            confidence=round(s, 4),
+            risk_level=risk_from_confidence(s),
+        )
+
+    # Both signals available → ensemble
+    score, reason = _ensemble(hf_result["confidence"], features)
+    score = round(score, 4)
+    logger.info("detector=ensemble score=%.3f reason=%s", score, reason)
     return DetectionResult(
-        is_synthetic=is_synthetic,
-        confidence=round(synthetic_score, 4),
-        risk_level=risk_level,
+        is_synthetic=score >= 0.5,
+        confidence=score,
+        risk_level=risk_from_confidence(score),
     )
 
 

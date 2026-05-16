@@ -9,4 +9,6 @@ numpy>=2.2.0
 scipy>=1.15.0
 librosa>=0.10.2
 soundfile>=0.12.1
+imageio-ffmpeg>=0.5.1
 resemblyzer>=0.1.4
+transformers>=4.40.0

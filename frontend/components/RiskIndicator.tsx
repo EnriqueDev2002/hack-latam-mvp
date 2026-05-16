@@ -55,9 +55,14 @@ export function RiskIndicator({ result }: Props) {
       <p className={cn("mt-3 text-base font-medium opacity-70", textColor)}>
         Confianza del análisis: {pct}%
       </p>
+      {result.speaker_match === true && result.matched_contact && (
+        <p className={cn("mt-2 text-senior font-bold", textColor)}>
+          ✓ La voz coincide con {result.matched_contact}.
+        </p>
+      )}
       {result.speaker_match === false && result.matched_contact && (
         <p className={cn("mt-2 text-senior font-bold", textColor)}>
-          La voz no coincide con {result.matched_contact}.
+          ⚠ La voz no coincide con {result.matched_contact}.
         </p>
       )}
     </div>

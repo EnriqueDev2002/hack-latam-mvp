@@ -1,20 +1,31 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
+
+# Must load .env BEFORE importing routers/services so module-level os.getenv reads work
+load_dotenv()
+
+# Surface app-level loggers (services.*) through uvicorn's stderr stream
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 
 from db import engine
 from routers import alerts, analyze, enroll, incidents
-
-load_dotenv()
+from services.deepfake_detector import warmup as warmup_deepfake
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     SQLModel.metadata.create_all(engine)
+    warmup_deepfake()
     yield
 
 

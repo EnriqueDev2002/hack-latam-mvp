@@ -1,14 +1,35 @@
+import subprocess
 from io import BytesIO
 
+import imageio_ffmpeg
 import librosa
 import numpy as np
 import soundfile as sf
 
+_FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
+
+
+def _ffmpeg_decode(raw: bytes, target_sr: int) -> tuple[np.ndarray, int]:
+    """Pipe arbitrary audio through ffmpeg, get back mono float32 PCM."""
+    proc = subprocess.run(
+        [
+            _FFMPEG, "-nostdin", "-hide_banner", "-loglevel", "error",
+            "-i", "pipe:0",
+            "-f", "f32le", "-ac", "1", "-ar", str(target_sr),
+            "pipe:1",
+        ],
+        input=raw,
+        capture_output=True,
+        check=True,
+    )
+    samples = np.frombuffer(proc.stdout, dtype=np.float32).copy()
+    return samples, target_sr
+
 
 def load_audio(raw: bytes, target_sr: int = 16000) -> tuple[np.ndarray, int]:
+    # Fast path for WAV/FLAC/OGG/AIFF (no subprocess)
     try:
         samples, sr = sf.read(BytesIO(raw))
-        # soundfile returns (samples, sr); enforce mono float32 at target_sr
         if samples.ndim > 1:
             samples = samples.mean(axis=1)
         samples = samples.astype(np.float32)
@@ -18,9 +39,9 @@ def load_audio(raw: bytes, target_sr: int = 16000) -> tuple[np.ndarray, int]:
     except Exception:
         pass
 
+    # WebM/Opus/MP3/M4A via bundled ffmpeg (browser MediaRecorder output)
     try:
-        samples, _ = librosa.load(BytesIO(raw), sr=target_sr, mono=True)
-        return samples.astype(np.float32), target_sr
+        return _ffmpeg_decode(raw, target_sr)
     except Exception:
         pass
 

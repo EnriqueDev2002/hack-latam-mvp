@@ -36,8 +36,8 @@ async def enroll(
     raw = await audio.read()
     embedding = compute_embedding(raw)
 
-    # Quality proxy: norm of embedding (all-zeros → failed, norm≈1 → good)
-    quality = round(min(1.0, float(np.linalg.norm(embedding)) / 16.0), 3)
+    # Resemblyzer returns L2-normalised embeddings (norm≈1.0 on success, 0.0 on failure)
+    quality = round(min(1.0, float(np.linalg.norm(embedding))), 3)
 
     contact = Contact(
         id=str(uuid.uuid4()),

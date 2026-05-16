@@ -1,8 +1,8 @@
-import io
 import logging
 import numpy as np
-import librosa
 from resemblyzer import VoiceEncoder, preprocess_wav
+
+from .audio_processing import load_audio
 
 _encoder: VoiceEncoder | None = None
 
@@ -15,11 +15,15 @@ def _get_encoder() -> VoiceEncoder:
 
 
 def compute_embedding(audio_bytes: bytes) -> np.ndarray:
-    samples, _ = librosa.load(io.BytesIO(audio_bytes), sr=16000, mono=True)
+    try:
+        samples, _ = load_audio(audio_bytes, target_sr=16000)
+    except Exception as exc:
+        logging.warning("compute_embedding decode failed: %s", exc)
+        return np.zeros(256, dtype=np.float32)
     wav = preprocess_wav(samples, source_sr=16000)
     try:
         embedding = _get_encoder().embed_utterance(wav)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         # embed_utterance fails on clips shorter than ~1 second
         logging.warning("compute_embedding failed (audio likely too short): %s", exc)
         return np.zeros(256, dtype=np.float32)
@@ -34,7 +38,7 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def match_against_contacts(
-    embedding: np.ndarray, contact_embeddings: dict[str, np.ndarray], threshold: float = 0.75
+    embedding: np.ndarray, contact_embeddings: dict[str, np.ndarray], threshold: float = 0.70
 ) -> tuple[str | None, float]:
     """Devuelve el contact_id con mayor similitud si supera el umbral."""
     best_id: str | None = None
@@ -44,6 +48,11 @@ def match_against_contacts(
         if score > best_score:
             best_score = score
             best_id = contact_id
-    if best_score >= threshold:
+    matched = best_score >= threshold
+    logging.info(
+        "speaker_match best_id=%s best_score=%.3f threshold=%.2f matched=%s",
+        best_id, best_score, threshold, matched,
+    )
+    if matched:
         return best_id, best_score
     return None, best_score
