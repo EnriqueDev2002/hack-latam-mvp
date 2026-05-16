@@ -56,9 +56,15 @@ export function RiskIndicator({ result }: Props) {
         Confianza del análisis: {pct}%
       </p>
       {result.speaker_match === true && result.matched_contact && (
-        <p className={cn("mt-2 text-senior font-bold", textColor)}>
-          ✓ La voz coincide con {result.matched_contact}.
-        </p>
+        result.is_synthetic ? (
+          <p className={cn("mt-2 text-senior font-bold", textColor)}>
+            ⚠️ Posible suplantación de {result.matched_contact}.
+          </p>
+        ) : (
+          <p className={cn("mt-2 text-senior font-bold", textColor)}>
+            ✓ Voz verificada: {result.matched_contact}.
+          </p>
+        )
       )}
       {result.speaker_match === false && result.matched_contact && (
         <p className={cn("mt-2 text-senior font-bold", textColor)}>

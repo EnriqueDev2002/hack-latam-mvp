@@ -1,10 +1,12 @@
 import type {
   AlertResponse,
   AnalyzeResponse,
+  Challenge,
   Contact,
   EnrollResponse,
   Incident,
   RiskLevel,
+  Stats,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -44,6 +46,14 @@ export async function listIncidents(limit = 20, risk?: RiskLevel): Promise<Incid
   if (risk) params.set("risk", risk);
   const data = await getJson<{ incidents: Incident[] }>(`/api/incidents?${params}`);
   return data.incidents;
+}
+
+export function getStats(): Promise<Stats> {
+  return getJson<Stats>("/api/stats");
+}
+
+export function getChallenge(): Promise<Challenge> {
+  return getJson<Challenge>("/api/challenge");
 }
 
 export async function sendAlert(incidentId: string, contactPhone: string): Promise<AlertResponse> {

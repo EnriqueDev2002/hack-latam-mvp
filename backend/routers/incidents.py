@@ -1,12 +1,13 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from db import get_session
+from models.contact import Contact
 from models.incident import Incident as IncidentModel
 
 router = APIRouter()
@@ -76,3 +77,44 @@ def list_incidents(
         stmt = stmt.where(IncidentModel.risk_level == risk)
     rows = session.exec(stmt).all()
     return IncidentsResponse(incidents=[_to_out(r) for r in rows])
+
+
+class StatsResponse(BaseModel):
+    total_analyses: int
+    fraud_detected: int  # high + medium risk
+    high_risk: int
+    medium_risk: int
+    low_risk: int
+    contacts_protected: int
+    alerts_sent: int
+    last_7_days_analyses: int
+
+
+@router.get("/stats", response_model=StatsResponse)
+def stats(session: Session = Depends(get_session)):
+    def count_where(*conditions) -> int:
+        stmt = select(func.count()).select_from(IncidentModel)
+        for c in conditions:
+            stmt = stmt.where(c)
+        return int(session.exec(stmt).one())
+
+    total = count_where()
+    high = count_where(IncidentModel.risk_level == "high")
+    medium = count_where(IncidentModel.risk_level == "medium")
+    low = count_where(IncidentModel.risk_level == "low")
+    alerts = count_where(IncidentModel.alerted == True)  # noqa: E712
+    contacts = int(session.exec(select(func.count()).select_from(Contact)).one())
+
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    last_7 = count_where(IncidentModel.created_at >= week_ago)
+
+    return StatsResponse(
+        total_analyses=total,
+        fraud_detected=high + medium,
+        high_risk=high,
+        medium_risk=medium,
+        low_risk=low,
+        contacts_protected=contacts,
+        alerts_sent=alerts,
+        last_7_days_analyses=last_7,
+    )

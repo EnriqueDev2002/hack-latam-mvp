@@ -33,3 +33,22 @@ export interface AlertResponse {
   sent: boolean;
   channel: "whatsapp" | "sms";
 }
+
+export interface Stats {
+  total_analyses: number;
+  fraud_detected: number;
+  high_risk: number;
+  medium_risk: number;
+  low_risk: number;
+  contacts_protected: number;
+  alerts_sent: number;
+  last_7_days_analyses: number;
+}
+
+export interface Challenge {
+  id: string;
+  kind: "filler" | "personal";
+  prompt: string;
+  instructions: string;
+  expires_at: string;
+}

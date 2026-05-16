@@ -64,3 +64,6 @@ hack-latam-mvp/
 *.webm
 *.m4a
 !backend/tests/fixtures/.gitkeep
+# Demo audios are part of the product (shipped to frontend public/)
+!frontend/public/demo/*.webm
+!frontend/public/demo/*.mp3
