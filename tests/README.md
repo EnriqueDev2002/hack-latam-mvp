@@ -39,3 +39,19 @@ Los argumentos `--voices` y `--texts` se pasan al script de backend; ver `backen
 `tests/fixtures/synthetic/<voice_id>_<n>.mp3`
 
 Los `.mp3` están gitignored — son artefactos locales para alimentar `backend/tests/test_detection.py` o calibración manual.
+
+## tts.py — TTS rápido desde CLI
+
+Genera un único `.mp3` a partir de un texto pasado por línea de comandos. Útil para crear muestras puntuales sin tener que tocar el script de batch.
+
+### Uso
+
+```
+python tests/tts.py "hola, esto es una prueba"
+python tests/tts.py "buenos dias" --voice Calm_Woman
+python tests/tts.py "texto" --output mi_audio.mp3
+```
+
+Voces disponibles: `Friendly_Person`, `Calm_Woman`, `Cute_Boy`, `Warm_Woman`.
+
+Sin `--output`, escribe en `tests/fixtures/synthetic/tts_<timestamp>.mp3`.
