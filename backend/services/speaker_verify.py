@@ -1,13 +1,29 @@
+import io
+import logging
 import numpy as np
+import librosa
+from resemblyzer import VoiceEncoder, preprocess_wav
+
+_encoder: VoiceEncoder | None = None
+
+
+def _get_encoder() -> VoiceEncoder:
+    global _encoder
+    if _encoder is None:
+        _encoder = VoiceEncoder(device="cpu")
+    return _encoder
 
 
 def compute_embedding(audio_bytes: bytes) -> np.ndarray:
-    """Genera embedding de voz con resemblyzer.
-
-    TODO Persona A: implementar.
-    """
-    _ = audio_bytes
-    raise NotImplementedError
+    samples, _ = librosa.load(io.BytesIO(audio_bytes), sr=16000, mono=True)
+    wav = preprocess_wav(samples, source_rate=16000)
+    try:
+        embedding = _get_encoder().embed_utterance(wav)
+    except Exception as exc:  # noqa: BLE001
+        # embed_utterance fails on clips shorter than ~1 second
+        logging.warning("compute_embedding failed (audio likely too short): %s", exc)
+        return np.zeros(256, dtype=np.float32)
+    return embedding
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
