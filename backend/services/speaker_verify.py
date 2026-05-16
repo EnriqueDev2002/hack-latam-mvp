@@ -16,7 +16,7 @@ def _get_encoder() -> VoiceEncoder:
 
 def compute_embedding(audio_bytes: bytes) -> np.ndarray:
     samples, _ = librosa.load(io.BytesIO(audio_bytes), sr=16000, mono=True)
-    wav = preprocess_wav(samples, source_rate=16000)
+    wav = preprocess_wav(samples, source_sr=16000)
     try:
         embedding = _get_encoder().embed_utterance(wav)
     except Exception as exc:  # noqa: BLE001
