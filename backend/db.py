@@ -14,11 +14,14 @@ def get_session():
 
 
 def run_migrations() -> None:
-    """Idempotent column additions for SQLite. SQLModel.create_all does not ALTER."""
-    if not DATABASE_URL.startswith("sqlite"):
-        return
+    """Idempotent ALTERs for SQLite + Postgres. SQLModel.create_all does not ALTER."""
     with engine.connect() as conn:
-        cols = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(contact)")}
-        if "phone" not in cols:
-            conn.exec_driver_sql("ALTER TABLE contact ADD COLUMN phone TEXT")
+        if DATABASE_URL.startswith("sqlite"):
+            cols = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(contact)")}
+            if "phone" not in cols:
+                conn.exec_driver_sql("ALTER TABLE contact ADD COLUMN phone TEXT")
+                conn.commit()
+        else:
+            # Postgres / others: ADD COLUMN IF NOT EXISTS is idempotent.
+            conn.exec_driver_sql("ALTER TABLE contact ADD COLUMN IF NOT EXISTS phone TEXT")
             conn.commit()
