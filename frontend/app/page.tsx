@@ -61,7 +61,7 @@ export default function Home() {
             </Link>
             <Link href="/analyze" className="btn-secondary w-full sm:w-auto text-lg px-10 py-5">
               <Mic className="h-5 w-5" />
-              Probar con tu voz
+              Probar con tu propio audio
             </Link>
           </div>
         </div>
