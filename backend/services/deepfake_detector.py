@@ -13,7 +13,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-MODEL_ID = os.getenv("DEEPFAKE_MODEL_ID", "MelodyMachine/Deepfake-audio-detection")
+MODEL_ID = os.getenv("DEEPFAKE_MODEL_ID", "garystafford/wav2vec2-deepfake-voice-detector")
 TARGET_SR = 16000
 MIN_DURATION_S = 1.0
 MAX_DURATION_S = 15.0

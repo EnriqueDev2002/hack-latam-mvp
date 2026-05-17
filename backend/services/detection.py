@@ -44,53 +44,21 @@ def _heuristic_score(features: dict) -> float:
     return ind_pitch * 0.35 + ind_flatness * 0.25 + ind_mfcc * 0.25 + ind_zcr * 0.15
 
 
-def _naturalness_score(features: dict) -> float:
-    """
-    0..1 score for how 'naturally human' the audio sounds.
-    Combines pitch variance (>30 = expressive) and MFCC variance (>25 = dynamic).
-    High naturalness → likely genuine speech regardless of what HF model says.
-    """
-    pitch_factor = min(features["pitch_std"] / 40.0, 1.0)
-    mfcc_factor = min(features["mfcc_std_1"] / 30.0, 1.0)
-
-    zcr = features["zcr_mean"]
-    zcr_ok = 0.01 < zcr < 0.25
-    sf = features["spectral_flatness_mean"]
-    sf_ok = 0.03 < sf < 0.45
-
-    base = (pitch_factor + mfcc_factor) / 2
-    if not zcr_ok:
-        base *= 0.7
-    if not sf_ok:
-        base *= 0.8
-    return base
-
-
 def _ensemble(hf_score: float, features: dict) -> tuple[float, str]:
     """
-    Combine HF model output with heuristic 'naturalness' veto.
+    HF model is the primary signal; heuristics only nudge when both agree.
     Returns (final_score, reason).
     """
     h_score = _heuristic_score(features)
-    nat = _naturalness_score(features)
 
-    # Case 1: heuristics show strong human voice markers AND HF disagrees → likely HF false positive
-    # (browser MediaRecorder + Opus compression seems to trigger wav2vec2 deepfake models)
-    if hf_score > 0.85 and nat > 0.70:
-        final = max(h_score, 0.10)  # at most low risk
-        return final, f"human_veto (nat={nat:.2f}, h={h_score:.2f}, hf={hf_score:.2f})"
-
-    # Case 2: heuristics confidently say synthetic and HF agrees → high confidence fake
     if h_score >= 0.45 and hf_score >= 0.5:
         final = max(h_score, hf_score)
         return final, f"both_synthetic (h={h_score:.2f}, hf={hf_score:.2f})"
 
-    # Case 3: both confidently say real
     if h_score < 0.25 and hf_score < 0.3:
         final = (h_score + hf_score) / 2
         return final, f"both_real (h={h_score:.2f}, hf={hf_score:.2f})"
 
-    # Default: HF model is the primary signal (catches modern TTS where heuristics fail)
     return hf_score, f"hf_primary (h={h_score:.2f}, hf={hf_score:.2f})"
 
 

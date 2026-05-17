@@ -38,7 +38,7 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def match_against_contacts(
-    embedding: np.ndarray, contact_embeddings: dict[str, np.ndarray], threshold: float = 0.70
+    embedding: np.ndarray, contact_embeddings: dict[str, np.ndarray], threshold: float = 0.80
 ) -> tuple[str | None, float]:
     """Devuelve el contact_id con mayor similitud si supera el umbral."""
     best_id: str | None = None
