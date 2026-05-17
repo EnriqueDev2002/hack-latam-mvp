@@ -1,21 +1,27 @@
-import type { AnalyzeResponse } from "./types";
+import type { AnalyzeResponse, LabAnalyzeResponse } from "./types";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000/ws/analyze";
+export const WS_LAB_URL = WS_URL.replace("/ws/analyze", "/ws/lab/analyze");
 const CHUNK_INTERVAL_MS = 1000;
 const WS_OPEN_TIMEOUT_MS = 3000;
 
-export type ScoreCallback = (score: AnalyzeResponse) => void;
+export type ScoreCallback<T = AnalyzeResponse> = (score: T) => void;
 export type ErrorCallback = (err: Error) => void;
 
-export class AudioStreamer {
+export class AudioStreamer<T = AnalyzeResponse> {
   private ws: WebSocket | null = null;
   private recorder: MediaRecorder | null = null;
   private stream: MediaStream | null = null;
+  private wsUrl: string;
 
-  async start(onScore: ScoreCallback, onError: ErrorCallback): Promise<void> {
+  constructor(wsUrl: string = WS_URL) {
+    this.wsUrl = wsUrl;
+  }
+
+  async start(onScore: ScoreCallback<T>, onError: ErrorCallback): Promise<void> {
     this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    this.ws = new WebSocket(WS_URL);
+    this.ws = new WebSocket(this.wsUrl);
 
     try {
       await new Promise<void>((resolve, reject) => {
@@ -47,7 +53,7 @@ export class AudioStreamer {
     this.ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data as string);
-        if (msg.type === "score") onScore(msg.data as AnalyzeResponse);
+        if (msg.type === "score") onScore(msg.data as T);
       } catch {
         // ignore malformed messages
       }

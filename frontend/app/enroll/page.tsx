@@ -11,6 +11,7 @@ type Step = "form" | "recording" | "done" | "error";
 
 export default function EnrollPage() {
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [step, setStep] = useState<Step>("form");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(true);
@@ -32,7 +33,7 @@ export default function EnrollPage() {
   async function handleRecorded(blob: Blob) {
     setSubmitting(true);
     try {
-      await enrollContact(blob, name.trim());
+      await enrollContact(blob, name.trim(), phone.trim() || undefined);
       const updated = await listContacts();
       setContacts(updated);
       setStep("done");
@@ -46,6 +47,7 @@ export default function EnrollPage() {
 
   function reset() {
     setName("");
+    setPhone("");
     setStep("form");
     setErrorMsg("");
   }
@@ -114,6 +116,22 @@ export default function EnrollPage() {
               />
               <p className="text-sm text-neutral-500">
                 Este nombre se mostrará en el resultado del análisis.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-base font-semibold text-neutral-700">
+                Teléfono (opcional)
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+56912345678"
+                className="input-field"
+                inputMode="tel"
+              />
+              <p className="text-sm text-neutral-500">
+                Formato internacional. Te permite avisarle por WhatsApp/SMS si detectamos una llamada sospechosa.
               </p>
             </div>
             <button type="submit" className="btn-primary w-full text-senior">
@@ -198,7 +216,14 @@ export default function EnrollPage() {
             </div>
           )}
           {contacts.map((c) => (
-            <ContactCard key={c.id} contact={c} />
+            <ContactCard
+              key={c.id}
+              contact={c}
+              onUpdated={(updated) =>
+                setContacts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+              }
+              onDeleted={(id) => setContacts((prev) => prev.filter((p) => p.id !== id))}
+            />
           ))}
         </div>
       </section>

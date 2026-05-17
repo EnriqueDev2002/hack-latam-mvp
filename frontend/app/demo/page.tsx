@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { Play, RotateCcw, Volume2, Mic } from "lucide-react";
+import { AlertButton } from "@/components/AlertButton";
 import { ChallengeCard } from "@/components/ChallengeCard";
 import { RiskIndicator } from "@/components/RiskIndicator";
 import { analyzeAudio } from "@/lib/api";
@@ -201,7 +202,12 @@ export default function DemoPage() {
               {run.result && (
                 <div className="mt-5 flex flex-col gap-4">
                   <RiskIndicator result={run.result} />
-                  {run.result.risk_level !== "low" && <ChallengeCard />}
+                  {run.result.risk_level !== "low" && (
+                    <>
+                      <AlertButton result={run.result} />
+                      <ChallengeCard />
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -215,14 +221,14 @@ export default function DemoPage() {
         style={{ background: "linear-gradient(160deg, #EFF6FF 0%, #F8FAFC 100%)", border: "1px solid #DBEAFE" }}
       >
         <p className="text-senior font-semibold text-brand-dark">
-          ¿Quieres probar el detector con tu propia voz?
+          ¿Quieres probar el detector con tu propio audio?
         </p>
         <Link
           href="/analyze"
           className="btn-primary mt-4 inline-flex text-base px-6 py-3"
         >
           <Mic className="h-5 w-5" />
-          Ir al analizador en vivo
+          Ir al analizador personalizado
         </Link>
       </div>
     </main>
