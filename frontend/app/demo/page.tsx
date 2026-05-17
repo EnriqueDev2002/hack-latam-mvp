@@ -38,7 +38,7 @@ const SCENARIOS: Scenario[] = [
     expected: "Debería detectarse como POSIBLE FRAUDE (sin match)",
     badge: "Voz IA",
     badgeColor: "badge-danger",
-    file: "/demo/ai-voice.webm",
+    file: "/demo/ai-voice.mp3",
   },
   {
     id: "clone",
@@ -48,7 +48,7 @@ const SCENARIOS: Scenario[] = [
     expected: "Debería detectarse como POSIBLE SUPLANTACIÓN de Jorge G",
     badge: "Clonación",
     badgeColor: "badge-danger",
-    file: "/demo/cloning-attempt.webm",
+    file: "/demo/cloning-attempt.mp3",
   },
 ];
 
