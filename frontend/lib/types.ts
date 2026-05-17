@@ -17,6 +17,7 @@ export interface EnrollResponse {
 export interface Contact {
   id: string;
   name: string;
+  phone: string | null;
   enrolled_at: string;
 }
 
@@ -31,7 +32,7 @@ export interface Incident {
 
 export interface AlertResponse {
   sent: boolean;
-  channel: "whatsapp" | "sms";
+  channel: "whatsapp" | "sms" | null;
 }
 
 export interface Stats {

@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { Play, RotateCcw, Volume2, Mic } from "lucide-react";
+import { AlertButton } from "@/components/AlertButton";
 import { ChallengeCard } from "@/components/ChallengeCard";
 import { RiskIndicator } from "@/components/RiskIndicator";
 import { analyzeAudio } from "@/lib/api";
@@ -201,7 +202,12 @@ export default function DemoPage() {
               {run.result && (
                 <div className="mt-5 flex flex-col gap-4">
                   <RiskIndicator result={run.result} />
-                  {run.result.risk_level !== "low" && <ChallengeCard />}
+                  {run.result.risk_level !== "low" && (
+                    <>
+                      <AlertButton result={run.result} />
+                      <ChallengeCard />
+                    </>
+                  )}
                 </div>
               )}
             </div>

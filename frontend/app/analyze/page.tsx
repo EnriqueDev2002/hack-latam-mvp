@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Phone, Upload } from "lucide-react";
+import { AlertButton } from "@/components/AlertButton";
 import { ChallengeCard } from "@/components/ChallengeCard";
 import { RiskIndicator } from "@/components/RiskIndicator";
 import { analyzeAudio } from "@/lib/api";
@@ -126,7 +127,12 @@ export default function AnalyzePage() {
         {status === "done" && finalResult && (
           <div className="flex flex-col gap-6">
             <RiskIndicator result={finalResult} />
-            {finalResult.risk_level !== "low" && <ChallengeCard />}
+            {finalResult.risk_level !== "low" && (
+              <>
+                <AlertButton result={finalResult} />
+                <ChallengeCard />
+              </>
+            )}
             <button
               type="button"
               onClick={reset}
