@@ -44,11 +44,19 @@
 └─────────────────────────────────────────────────────┘
                         ↕  WebSocket + REST
 ┌─────────────────────────────────────────────────────┐
-│  BACKEND (Railway)                                  │
-│  FastAPI + Python 3.11                              │
+│  BACKEND (Railway, Docker)                          │
+│  FastAPI + Python 3.12                              │
 │  - librosa (features acústicas)                     │
 │  - resemblyzer (speaker embeddings)                 │
-│  - SQLite + SQLModel                                │
+│  - transformers (Deepfake-audio-detection HF model) │
+│  - SQLModel (ORM) → Supabase Postgres en prod,      │
+│    SQLite en local dev (fallback en db.py)          │
+└─────────────────────────────────────────────────────┘
+                        ↕
+┌─────────────────────────────────────────────────────┐
+│  PERSISTENCIA                                       │
+│  Supabase Postgres (managed)                        │
+│  Driver: psycopg2-binary, sslmode=require           │
 └─────────────────────────────────────────────────────┘
                         ↕
 ┌─────────────────────────────────────────────────────┐
