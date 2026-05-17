@@ -7,4 +7,5 @@ class Contact(SQLModel, table=True):
     id: str = Field(primary_key=True)
     name: str
     embedding_blob: bytes
+    phone: str | None = Field(default=None)
     enrolled_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
