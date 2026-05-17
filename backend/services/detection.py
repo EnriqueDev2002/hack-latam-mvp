@@ -1,10 +1,10 @@
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
 from .audio_processing import extract_features, load_audio
-from .deepfake_detector import detect_deepfake
+from .deepfake_detector import MODEL_ID as HF_MODEL_ID, detect_deepfake, detect_deepfake_with
 
 logger = logging.getLogger(__name__)
 
@@ -113,3 +113,93 @@ def risk_from_confidence(confidence: float) -> Literal["low", "medium", "high"]:
     if confidence >= 0.45:
         return "medium"
     return "low"
+
+
+SYNTHETIC_THRESHOLD = 0.5
+
+
+def run_pipeline_debug(
+    audio_bytes: bytes,
+    compare_model_id: str | None = None,
+) -> tuple[DetectionResult, dict[str, Any]]:
+    """Like run_pipeline but also returns a debug dict for the lab page."""
+    debug: dict[str, Any] = {
+        "hf_model_id": HF_MODEL_ID,
+        "hf_fake_score": None,
+        "heuristic_score": None,
+        "ensemble_reason": "",
+        "features": None,
+        "duration_s": None,
+        "synthetic_threshold": SYNTHETIC_THRESHOLD,
+        "secondary": None,
+    }
+
+    try:
+        samples, sr = load_audio(audio_bytes)
+        debug["duration_s"] = round(len(samples) / sr, 2)
+    except Exception:
+        return DetectionResult(is_synthetic=False, confidence=0.1, risk_level="low"), debug
+
+    try:
+        features = extract_features(samples, sr)
+        debug["features"] = features
+    except Exception:
+        features = None
+
+    if features is not None:
+        debug["heuristic_score"] = round(_heuristic_score(features), 4)
+
+    hf_result = detect_deepfake(samples, sr)
+    if hf_result is not None:
+        debug["hf_fake_score"] = round(hf_result["confidence"], 4)
+
+    if compare_model_id:
+        try:
+            sec = detect_deepfake_with(compare_model_id, samples, sr)
+            if sec is not None:
+                debug["secondary"] = {
+                    "model_id": compare_model_id,
+                    "fake_score": round(sec["confidence"], 4),
+                    "is_synthetic": sec["is_synthetic"],
+                }
+        except Exception as exc:
+            debug["secondary"] = {"model_id": compare_model_id, "error": str(exc)}
+
+    if hf_result is None:
+        if features is None:
+            return DetectionResult(is_synthetic=False, confidence=0.1, risk_level="low"), debug
+        score = _heuristic_score(features)
+        debug["ensemble_reason"] = "heuristic-only"
+        return (
+            DetectionResult(
+                is_synthetic=score >= 0.45,
+                confidence=round(score, 4),
+                risk_level=risk_from_confidence(score),
+            ),
+            debug,
+        )
+
+    if features is None:
+        s = hf_result["confidence"]
+        debug["ensemble_reason"] = "hf-only (no features)"
+        return (
+            DetectionResult(
+                is_synthetic=hf_result["is_synthetic"],
+                confidence=round(s, 4),
+                risk_level=risk_from_confidence(s),
+            ),
+            debug,
+        )
+
+    score, reason = _ensemble(hf_result["confidence"], features)
+    score = round(score, 4)
+    debug["ensemble_reason"] = reason
+    logger.info("detector=ensemble score=%.3f reason=%s", score, reason)
+    return (
+        DetectionResult(
+            is_synthetic=score >= SYNTHETIC_THRESHOLD,
+            confidence=score,
+            risk_level=risk_from_confidence(score),
+        ),
+        debug,
+    )

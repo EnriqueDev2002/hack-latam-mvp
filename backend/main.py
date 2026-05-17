@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 
 from db import engine
-from routers import alerts, analyze, challenge, enroll, incidents
+from routers import alerts, analyze, challenge, enroll, incidents, lab
 from services.deepfake_detector import warmup as warmup_deepfake
 
 
@@ -29,7 +29,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="VoiceGuard API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="VoiceGuard API", version="0.1.1", lifespan=lifespan)
 
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
@@ -51,4 +51,6 @@ app.include_router(enroll.router, prefix="/api", tags=["enroll"])
 app.include_router(incidents.router, prefix="/api", tags=["incidents"])
 app.include_router(alerts.router, prefix="/api", tags=["alerts"])
 app.include_router(challenge.router, prefix="/api", tags=["challenge"])
+app.include_router(lab.router, prefix="/api", tags=["lab"])
 app.include_router(analyze.ws_router)
+app.include_router(lab.ws_router)

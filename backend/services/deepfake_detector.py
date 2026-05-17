@@ -18,33 +18,37 @@ TARGET_SR = 16000
 MIN_DURATION_S = 1.0
 MAX_DURATION_S = 15.0
 
-_pipeline = None
+_pipelines: dict[str, object] = {}
 _load_lock = Lock()
-_load_failed = False
+_failed_ids: set[str] = set()
 
 
-def _get_pipeline():
-    global _pipeline, _load_failed
-    if _pipeline is not None or _load_failed:
-        return _pipeline
+def _get_pipeline(model_id: str = MODEL_ID):
+    if model_id in _pipelines:
+        return _pipelines[model_id]
+    if model_id in _failed_ids:
+        return None
 
     with _load_lock:
-        if _pipeline is not None or _load_failed:
-            return _pipeline
+        if model_id in _pipelines:
+            return _pipelines[model_id]
+        if model_id in _failed_ids:
+            return None
         try:
             from transformers import pipeline  # heavy import deferred
-            logger.info("Loading deepfake detector: %s", MODEL_ID)
-            _pipeline = pipeline(
+            logger.info("Loading deepfake detector: %s", model_id)
+            pipe = pipeline(
                 task="audio-classification",
-                model=MODEL_ID,
+                model=model_id,
                 device=-1,  # CPU
             )
-            logger.info("Deepfake detector loaded")
+            _pipelines[model_id] = pipe
+            logger.info("Deepfake detector loaded: %s", model_id)
+            return pipe
         except Exception as exc:
-            logger.warning("Could not load deepfake model %s: %s", MODEL_ID, exc)
-            _load_failed = True
-            _pipeline = None
-    return _pipeline
+            logger.warning("Could not load deepfake model %s: %s", model_id, exc)
+            _failed_ids.add(model_id)
+            return None
 
 
 def _fake_score_from_predictions(predictions: list[dict]) -> float:
@@ -63,16 +67,7 @@ def _fake_score_from_predictions(predictions: list[dict]) -> float:
     return float(top["score"]) if "fake" in top["label"].lower() else float(1.0 - top["score"])
 
 
-def detect_deepfake(samples: np.ndarray, sr: int) -> dict | None:
-    """
-    Run the HF model on a mono float32 sample array. Returns
-    {is_synthetic, confidence, model: MODEL_ID} or None if the model isn't
-    available (caller should fall back to heuristic pipeline).
-    """
-    pipe = _get_pipeline()
-    if pipe is None:
-        return None
-
+def _run_pipe(pipe, samples: np.ndarray, sr: int, model_id: str) -> dict | None:
     duration = len(samples) / sr
     if duration < MIN_DURATION_S:
         return None
@@ -82,22 +77,34 @@ def detect_deepfake(samples: np.ndarray, sr: int) -> dict | None:
     try:
         predictions = pipe({"array": samples.astype(np.float32), "sampling_rate": sr})
     except Exception as exc:
-        logger.warning("Deepfake model inference failed: %s", exc)
+        logger.warning("Deepfake model inference failed (%s): %s", model_id, exc)
         return None
 
     fake_score = _fake_score_from_predictions(predictions)
     pretty = ", ".join(f"{p['label']}={p['score']:.3f}" for p in predictions)
     logger.info(
-        "deepfake duration=%.2fs preds=[%s] fake_score=%.3f",
-        duration, pretty, fake_score,
+        "deepfake model=%s duration=%.2fs preds=[%s] fake_score=%.3f",
+        model_id, duration, pretty, fake_score,
     )
-    return {
-        "is_synthetic": fake_score >= 0.5,
-        "confidence": fake_score,
-        "model": MODEL_ID,
-    }
+    return {"is_synthetic": fake_score >= 0.5, "confidence": fake_score, "model": model_id}
+
+
+def detect_deepfake(samples: np.ndarray, sr: int) -> dict | None:
+    """Run the primary HF model. Returns None if unavailable."""
+    pipe = _get_pipeline(MODEL_ID)
+    if pipe is None:
+        return None
+    return _run_pipe(pipe, samples, sr, MODEL_ID)
+
+
+def detect_deepfake_with(model_id: str, samples: np.ndarray, sr: int) -> dict | None:
+    """Run a specific HF model by id (for lab side-by-side comparisons)."""
+    pipe = _get_pipeline(model_id)
+    if pipe is None:
+        return None
+    return _run_pipe(pipe, samples, sr, model_id)
 
 
 def warmup() -> bool:
-    """Trigger model load proactively. Returns True if model is ready."""
-    return _get_pipeline() is not None
+    """Trigger primary model load proactively. Returns True if ready."""
+    return _get_pipeline(MODEL_ID) is not None
