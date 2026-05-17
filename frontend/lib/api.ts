@@ -5,6 +5,7 @@ import type {
   Contact,
   EnrollResponse,
   Incident,
+  LabAnalyzeResponse,
   RiskLevel,
   Stats,
 } from "./types";
@@ -27,6 +28,12 @@ export async function analyzeAudio(blob: Blob): Promise<AnalyzeResponse> {
   const fd = new FormData();
   fd.append("audio", blob, "recording.webm");
   return postForm<AnalyzeResponse>("/api/analyze", fd);
+}
+
+export async function analyzeAudioLab(blob: Blob): Promise<LabAnalyzeResponse> {
+  const fd = new FormData();
+  fd.append("audio", blob, "recording.webm");
+  return postForm<LabAnalyzeResponse>("/api/lab/analyze", fd);
 }
 
 export async function enrollContact(blob: Blob, name: string): Promise<EnrollResponse> {

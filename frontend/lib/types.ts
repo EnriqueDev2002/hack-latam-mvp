@@ -52,3 +52,33 @@ export interface Challenge {
   instructions: string;
   expires_at: string;
 }
+
+export interface LabSecondary {
+  model_id: string;
+  fake_score?: number;
+  is_synthetic?: boolean;
+  error?: string;
+}
+
+export interface LabDebug {
+  hf_model_id: string;
+  hf_fake_score: number | null;
+  heuristic_score: number | null;
+  ensemble_reason: string;
+  features: Record<string, number> | null;
+  duration_s: number | null;
+  synthetic_threshold: number;
+  secondary: LabSecondary | null;
+}
+
+export interface LabAnalyzeResponse {
+  is_synthetic: boolean;
+  confidence: number;
+  risk_level: RiskLevel;
+  speaker_match: boolean | null;
+  speaker_match_score: number | null;
+  speaker_match_threshold: number;
+  matched_contact: string | null;
+  analysis_id: string;
+  debug: LabDebug;
+}
