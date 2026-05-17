@@ -64,7 +64,7 @@ export function AlertButton({ result }: Props) {
         <CheckCircle2 className="h-6 w-6 flex-shrink-0 text-success" />
         <div className="text-sm">
           <p className="font-semibold text-emerald-900">
-            Aviso enviado a {selected?.name} por {channel === "whatsapp" ? "WhatsApp" : "SMS"}.
+            Aviso encolado para {selected?.name} por {channel === "whatsapp" ? "WhatsApp" : "SMS"}. Puede tardar unos minutos en llegar.
           </p>
           <p className="mt-1 text-emerald-800">
             Le pedimos que verifique la identidad por otro medio antes de actuar.
@@ -83,8 +83,8 @@ export function AlertButton({ result }: Props) {
 
       {contacts.length === 1 ? (
         <p className="text-sm text-neutral-600">
-          Le enviaremos un mensaje a <span className="font-semibold">{contacts[0].name}</span>{" "}
-          (<span className="font-mono text-xs">{contacts[0].phone}</span>) por WhatsApp; si falla, lo intentamos por SMS.
+          Le enviaremos un SMS a <span className="font-semibold">{contacts[0].name}</span>{" "}
+          (<span className="font-mono text-xs">{contacts[0].phone}</span>).
         </p>
       ) : (
         <label className="flex flex-col gap-1 text-sm">

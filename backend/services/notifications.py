@@ -24,7 +24,16 @@ async def _send_one(client: httpx.AsyncClient, phone: str, message: str, channel
             json={"to": phone, "channel": channel, "text": message},
         )
         if resp.status_code < 300:
-            logger.info("zavu sent channel=%s phone=%s status=%s", channel, phone, resp.status_code)
+            try:
+                msg = resp.json().get("message", {})
+                msg_id = msg.get("id", "?")
+                status = msg.get("status", "?")
+            except Exception:
+                msg_id = status = "?"
+            logger.info(
+                "zavu queued channel=%s phone=%s http=%s message.id=%s message.status=%s",
+                channel, phone, resp.status_code, msg_id, status,
+            )
             return True
         logger.warning(
             "zavu failed channel=%s status=%s body=%s",
@@ -37,13 +46,13 @@ async def _send_one(client: httpx.AsyncClient, phone: str, message: str, channel
 
 
 async def send_alert(phone: str, message: str) -> tuple[bool, Channel | None]:
-    """Try WhatsApp first, fall back to SMS. Returns (sent, channel_used or None)."""
+    """Try SMS first (works without WABA), fall back to WhatsApp if available."""
     if not ZAVU_API_KEY:
         logger.warning("ZAVU_API_KEY not configured")
         return False, None
     async with httpx.AsyncClient(timeout=10.0) as client:
-        if await _send_one(client, phone, message, "whatsapp"):
-            return True, "whatsapp"
         if await _send_one(client, phone, message, "sms"):
             return True, "sms"
+        if await _send_one(client, phone, message, "whatsapp"):
+            return True, "whatsapp"
     return False, None
