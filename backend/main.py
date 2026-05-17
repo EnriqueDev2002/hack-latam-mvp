@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -32,10 +33,18 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="VoiceGuard API", version="0.1.2", lifespan=lifespan)
 
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+_cors_items = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()]
+_cors_exact = [o for o in _cors_items if "*" not in o]
+_cors_wildcards = [o for o in _cors_items if "*" in o]
+_cors_regex = None
+if _cors_wildcards:
+    _patterns = [re.escape(o).replace(r"\*", r".*") for o in _cors_wildcards]
+    _cors_regex = "^(" + "|".join(_patterns) + ")$"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=_cors_exact,
+    allow_origin_regex=_cors_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
