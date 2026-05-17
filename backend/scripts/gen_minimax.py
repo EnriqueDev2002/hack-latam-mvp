@@ -21,18 +21,13 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 import httpx
 
-MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
-MINIMAX_GROUP_ID = os.getenv("MINIMAX_GROUP_ID", "")
+MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "").strip()
 
-# MiniMax API hosts by platform:
-#   platform.minimax.io  (sk-... keys)  -> api.minimax.io
-#   platform.minimaxi.chat (international) -> api.minimaxi.chat
-#   minimax.chat (China)                -> api.minimax.chat
 API_HOSTS = [
+    "https://api-uw.minimax.io",
     "https://api.minimax.io",
-    "https://api.minimaxi.chat",
-    "https://api.minimax.chat",
 ]
+MINIMAX_MODEL = "speech-2.8-hd"
 
 # MiniMax built-in voices (en/es multilingual)
 VOICES = [
@@ -53,12 +48,8 @@ TEXTS = [
 def _call_api(host: str, text: str, voice_id: str) -> bytes:
     """Attempt a single TTS call to the given MiniMax host."""
     url = f"{host}/v1/t2a_v2"
-    params = {}
-    if MINIMAX_GROUP_ID:
-        params["GroupId"] = MINIMAX_GROUP_ID
-
     payload = {
-        "model": "speech-01-hd",
+        "model": MINIMAX_MODEL,
         "text": text,
         "voice_setting": {
             "voice_id": voice_id,
@@ -67,7 +58,7 @@ def _call_api(host: str, text: str, voice_id: str) -> bytes:
             "pitch": 0,
         },
         "audio_setting": {
-            "sample_rate": 16000,
+            "sample_rate": 32000,
             "bitrate": 128000,
             "format": "mp3",
         },
@@ -77,7 +68,7 @@ def _call_api(host: str, text: str, voice_id: str) -> bytes:
         "Content-Type": "application/json",
     }
 
-    resp = httpx.post(url, json=payload, headers=headers, params=params, timeout=30)
+    resp = httpx.post(url, json=payload, headers=headers, timeout=30)
     resp.raise_for_status()
 
     content_type = resp.headers.get("content-type", "")
@@ -89,12 +80,12 @@ def _call_api(host: str, text: str, voice_id: str) -> bytes:
     status_code = base_resp.get("status_code", 0)
     if status_code != 0:
         raise RuntimeError(
-            f"MiniMax API error {status_code}: {base_resp.get('status_msg', 'unknown')}"
+            f"{host}: status {status_code} - {base_resp.get('status_msg', 'unknown')}"
         )
 
     audio_hex = data.get("data", {}).get("audio", "")
     if not audio_hex:
-        raise RuntimeError(f"Respuesta inesperada: {str(data)[:300]}")
+        raise RuntimeError(f"{host}: respuesta inesperada {str(data)[:300]}")
 
     return bytes.fromhex(audio_hex)
 
